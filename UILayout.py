@@ -55,7 +55,7 @@ def clear_context(transcriber, speaker_queue,mic_queue):
         mic_queue.queue.clear()
 
 def create_ui_components(root, transcriber, speaker_queue, mic_queue):
-    _font_size = 20
+    _font_size = 12
     # set theme
 
 
@@ -81,17 +81,27 @@ def create_ui_components(root, transcriber, speaker_queue, mic_queue):
     )
     clear_button.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 10))
 
-    response_textbox = ctk.CTkTextbox(root, width=300, font=("Arial", _font_size), text_color='#639cdc', wrap="word")
+    right_frame = ctk.CTkFrame(root)
+    right_frame.grid(row=0, column=1, sticky="nsew", padx=20, pady=20)
+
+    right_frame.grid_columnconfigure(0, weight=1)
+    right_frame.grid_rowconfigure(0, weight=100)
+    right_frame.grid_rowconfigure(1, weight=1)
+    right_frame.grid_rowconfigure(2, weight=1)
+    right_frame.grid_rowconfigure(3, weight=1)
+
+
+    response_textbox = ctk.CTkTextbox(right_frame, width=300, font=("Arial", _font_size), text_color='#639cdc', wrap="word")
     response_textbox.grid(row=0, column=1, padx=10, pady=20, sticky="nsew")
 
-    freeze_button = ctk.CTkButton(root, text="Freeze", command=None)
+    freeze_button = ctk.CTkButton(right_frame, text="Freeze", command=None)
     freeze_button.grid(row=1, column=1, padx=10, pady=3, sticky="nsew")
 
-    update_interval_slider = ctk.CTkSlider(root, from_=1, to=10, width=300, height=20, number_of_steps=9)
+    update_interval_slider = ctk.CTkSlider(right_frame, from_=1, to=10, width=300, height=20, number_of_steps=9)
     update_interval_slider.set(2)
     update_interval_slider.grid(row=3, column=1, padx=10, pady=10, sticky="nsew")
 
-    update_interval_slider_label = ctk.CTkLabel(root, text=f"", font=("Arial", 12), text_color="#FFFCF2")
+    update_interval_slider_label = ctk.CTkLabel(right_frame, text=f"", font=("Arial", 12), text_color="#FFFCF2")
     update_interval_slider_label.grid(row=2, column=1, padx=10, pady=3, sticky="nsew")
     # update_interval_slider_label.configure(text=f"Update interval: {update_interval_slider.get()} seconds")
 

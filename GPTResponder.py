@@ -1,5 +1,6 @@
 import os
 from openai import OpenAI
+from datetime import datetime
 
 import LlmClient as llmClient
 
@@ -32,8 +33,18 @@ class GPTResponder:
 
                 transcriber.transcript_changed_event.clear() 
                 transcript_string = transcriber.get_transcript()
-                print(transcript_string)
-                response = generate_response_from_transcript(transcript_string)
+                # print("test:",transcript_string)
+                current_date = datetime.now()
+
+                # Format the date as yyyyMMdd
+                formatted_date = current_date.strftime('%Y%m%d')
+                fileName = f"./transcript_log/transcript_{formatted_date}.txt"
+                with open(fileName,'a' ) as file:
+                # Write some text to the file
+                    file.write(transcript_string)
+                response = ''
+                if(transcript_string.startswith("Speaker:")):
+                    response = generate_response_from_transcript(transcript_string)
                 
                 end_time = time.time()  # Measure end time
                 execution_time = end_time - start_time  # Calculate the time it took to execute the function

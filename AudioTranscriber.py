@@ -143,7 +143,11 @@ class AudioTranscriber:
             key=lambda x: x[1], reverse=True))
         combined_transcript = combined_transcript[:MAX_PHRASES]
         return "".join([t[0] for t in combined_transcript])
-    
+
+    def get_speaker_transcript(self):
+        return self.transcript_data["Speaker"]
+    def get_mic_transcript(self):
+        return self.transcript_data["You"]
     def clear_transcript_data(self):
         self.transcript_data["You"].clear()
         self.transcript_data["Speaker"].clear()

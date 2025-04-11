@@ -14,7 +14,7 @@ def get_model(use_api):
 class FasterWhisperTranscriber:
     def __init__(self):
         print(f"[INFO] Loading Faster Whisper model...")
-        self.model = WhisperModel("tiny.en", device="cuda" if torch.cuda.is_available() else "cpu",
+        self.model = WhisperModel("small", device="cuda" if torch.cuda.is_available() else "cpu",
                                  compute_type="float32" if torch.cuda.is_available() else "int8")
         # self.audio_model =whisper.load_model("small")
         print(f"[INFO] Faster Whisper using GPU: {torch.cuda.is_available()}")
