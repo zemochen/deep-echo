@@ -15,6 +15,9 @@ def request_deep_seek(content):
   )
 def request_volce_engine(content):
   client = get_volce_engine()
+  print("---------------content start-------------------\n")
+  print(content)
+  print("\n---------------content end-------------------\n")
   return client.chat.completions.create(
       model="deepseek-v3-241226",
       messages=[{"role": "system", "content": content}],

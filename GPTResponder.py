@@ -10,6 +10,7 @@ import time
 
 def generate_response_from_transcript(transcript):
     try:
+
         response = llmClient.request_volce_engine(create_prompt(transcript))
 
     except Exception as e:
@@ -27,6 +28,7 @@ class GPTResponder:
         self.response_interval = 2
 
     def respond_to_transcriber(self, transcriber):
+        last_submit = datetime.utcnow()
         while True:
             if transcriber.transcript_changed_event.is_set():
                 start_time = time.time()
@@ -34,16 +36,10 @@ class GPTResponder:
                 transcriber.transcript_changed_event.clear() 
                 transcript_string = transcriber.get_transcript()
                 # print("test:",transcript_string)
-                current_date = datetime.now()
+                last_submit,speaker_string = transcriber.get_speaker_newest(last_submit)
 
-                # Format the date as yyyyMMdd
-                formatted_date = current_date.strftime('%Y%m%d')
-                fileName = f"./transcript_log/transcript_{formatted_date}.txt"
-                with open(fileName,'a' ) as file:
-                # Write some text to the file
-                    file.write(transcript_string)
                 response = ''
-                if(transcript_string.startswith("Speaker:")):
+                if speaker_string:
                     response = generate_response_from_transcript(transcript_string)
                 
                 end_time = time.time()  # Measure end time
