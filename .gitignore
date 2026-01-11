@@ -31,3 +31,5 @@ Temporary Items
 .apdisk
 
 .hypothesis/
+# Jupyter Notebook 检查点
+.ipynb_checkpoints/
