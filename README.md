@@ -89,7 +89,7 @@ brew install blackhole-2ch
       python -c "with open('keys.py', 'w', encoding='utf-8') as f: f.write('OPENAI_API_KEY=\"API KEY\"')"
       ```
 
-   - Option 2: You can create the keys.py file manually. Open up your text editor of choice and enter the following content:
+   - Option 2: You can create the keys.py file manually. Open uphypothesis your text editor of choice and enter the following content:
    
       ```
       OPENAI_API_KEY="API KEY"
