@@ -82,23 +82,23 @@
   - **属性5: 可配置更新间隔**
   - **验证需求: 3.4**
 
-- [ ] 5. 检查点 - 核心功能验证
+- [x] 5. 检查点 - 核心功能验证
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 6. 改进用户界面模块
-  - [ ] 6.1 重构UI布局组件
+- [x] 6. 改进用户界面模块
+  - [x] 6.1 重构UI布局组件
     - Refactor UILayout.py with better organization
     - Add AI provider selection controls
     - Improve error display and status indicators
     - _需求: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7_
 
-  - [ ] 6.2 添加AI厂商选择界面
+  - [x] 6.2 添加AI厂商选择界面
     - Add dropdown for AI provider selection
     - Implement model selection for each provider
     - Add configuration validation feedback
     - _需求: 4.4, 4.5, 扩展功能_
 
-- [ ] 6.3 为用户界面编写属性测试
+- [x] 6.3 为用户界面编写属性测试
   - **属性6: UI实时响应更新**
   - **属性7: 冻结功能状态管理**
   - **属性8: 配置显示同步**

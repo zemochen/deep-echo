@@ -10,6 +10,7 @@ import sys
 import TranscriberModels
 import subprocess
 import UILayout as layout
+from src.ui.main_window import MainWindow
 from keys import OPENAI_API_KEY, VOLCENGINE_API_KEY
 
 
@@ -83,29 +84,39 @@ def main():
     respond.daemon = True
     respond.start()
 
-    root = layout.init_ui()
+    # Check if we should use the new UI
+    use_new_ui = '--new-ui' in sys.argv
+    
+    if use_new_ui:
+        # Use new main window with AI provider selection
+        main_window = MainWindow()
+        root = main_window.initialize(transcriber, responder, ai_adapter, speaker_queue, mic_queue)
+        
+        print("READY - Using new UI with AI provider selection")
+        main_window.run()
+    else:
+        # Use legacy UI for backward compatibility
+        root = layout.init_ui()
 
+        transcript_textbox, response_textbox, update_interval_slider, update_interval_slider_label, freeze_button = layout.create_ui_components(
+            root, transcriber, speaker_queue, mic_queue)
 
+        freeze_state = [False]  # Using list to be able to change its content inside inner functions
 
-    transcript_textbox, response_textbox, update_interval_slider, update_interval_slider_label,freeze_button = layout.create_ui_components(
-        root, transcriber, speaker_queue, mic_queue)
+        def freeze_unfreeze():
+            freeze_state[0] = not freeze_state[0]  # Invert the freeze state
+            freeze_button.configure(text="Unfreeze" if freeze_state[0] else "Freeze")
+            return freeze_state[0]
 
-    freeze_state = [False]  # Using list to be able to change its content inside inner functions
+        freeze_button.configure(command=freeze_unfreeze)
 
-    def freeze_unfreeze():
-        freeze_state[0] = not freeze_state[0]  # Invert the freeze state
-        freeze_button.configure(text="Unfreeze" if freeze_state[0] else "Freeze")
-        return freeze_state[0]
+        update_interval_slider_label.configure(text=f"Update interval: {update_interval_slider.get()} seconds")
 
-    freeze_button.configure(command=freeze_unfreeze)
+        print("READY - Using legacy UI")
+        layout.update_transcript_UI(transcriber, transcript_textbox)
+        layout.update_response_UI(responder, response_textbox, update_interval_slider_label, update_interval_slider, freeze_state)
 
-    update_interval_slider_label.configure(text=f"Update interval: {update_interval_slider.get()} seconds")
-
-    print("READY")
-    layout.update_transcript_UI(transcriber, transcript_textbox)
-    layout.update_response_UI(responder, response_textbox, update_interval_slider_label, update_interval_slider, freeze_state)
-
-    root.mainloop()
+        root.mainloop()
 
 
 if __name__ == "__main__":
