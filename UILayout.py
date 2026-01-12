@@ -34,7 +34,7 @@ def update_transcript_UI(transcriber, textbox):
 
 def update_response_UI(responder, textbox, update_interval_slider_label, update_interval_slider,freeze_state):
     if not freeze_state[0]:
-        response = responder.response
+        response = responder.get_current_response()
 
         textbox.configure(state="normal")
         write_in_textbox(textbox, response)

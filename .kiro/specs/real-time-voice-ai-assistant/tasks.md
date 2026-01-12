@@ -26,59 +26,59 @@
   - **属性2: 音频源区分标记**
   - **验证需求: 2.5**
 
-- [ ] 3. 创建AI适配器架构
-  - [ ] 3.1 实现AI提供商抽象基类
+- [x] 3. 创建AI适配器架构
+  - [x] 3.1 实现AI提供商抽象基类
     - Create AIProvider abstract base class
     - Define common interface for all AI providers
     - _需求: 3.1, 3.2, 3.3_
 
-  - [ ] 3.2 实现DeepSeek提供商
+  - [x] 3.2 实现DeepSeek提供商
     - Create DeepSeekProvider class
     - Implement API integration and error handling
     - _需求: 3.1, 3.2, 3.3_
 
-  - [ ] 3.3 实现OpenAI提供商
+  - [x] 3.3 实现OpenAI提供商
     - Create OpenAIProvider class
     - Migrate existing OpenAI integration
     - _需求: 3.1, 3.2, 3.3_
 
-  - [ ] 3.4 实现Grok提供商
+  - [x] 3.4 实现Grok提供商
     - Create GrokProvider class
     - Implement X.AI API integration
     - _需求: 3.1, 3.2, 3.3_
 
-  - [ ] 3.5 实现Claude提供商
+  - [x] 3.5 实现Claude提供商
     - Create ClaudeProvider class
     - Implement Anthropic API integration
     - _需求: 3.1, 3.2, 3.3_
 
-  - [ ] 3.6 实现火山引擎提供商
+  - [x] 3.6 实现火山引擎提供商
     - Create VolcanoEngineProvider class
     - Implement ByteDance API integration
     - _需求: 3.1, 3.2, 3.3_
 
-  - [ ] 3.7 实现阿里云提供商
-    - Create AliyunProvider class
-    - Implement Alibaba Cloud API integration
+  - [x] 3.7 实现智谱提供商
+    - Create GLMProvider class
+    - Implement GLM API integration
     - _需求: 3.1, 3.2, 3.3_
 
-  - [ ] 3.8 实现AI适配器类
+  - [x] 3.8 实现AI适配器类
     - Create AIAdapter class for provider management
     - Implement provider switching and configuration
     - _需求: 3.1, 3.2, 3.3_
 
-- [ ] 3.9 为AI适配器编写属性测试
+- [x] 3.9 为AI适配器编写属性测试
   - **属性3: AI响应生成完整性**
   - **属性4: AI厂商切换一致性**
   - **验证需求: 3.1, 3.2, 3.3, 扩展功能**
 
-- [ ] 4. 重构GPT响应器模块
+- [x] 4. 重构GPT响应器模块
   - Refactor GPTResponder.py to use AI adapter
   - Implement configurable update intervals
   - Add proper error handling and retry logic
   - _需求: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 4.1 为GPT响应器编写属性测试
+- [x] 4.1 为GPT响应器编写属性测试
   - **属性5: 可配置更新间隔**
   - **验证需求: 3.4**
 

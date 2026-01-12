@@ -1,6 +1,7 @@
 import threading
 from AudioTranscriber import AudioTranscriber
-from GPTResponder import GPTResponder
+from src.ai.responder import GPTResponder
+from src.ai.adapter import AIAdapter
 import customtkinter as ctk
 import AudioRecorder
 import queue
@@ -9,6 +10,7 @@ import sys
 import TranscriberModels
 import subprocess
 import UILayout as layout
+from keys import OPENAI_API_KEY, VOLCENGINE_API_KEY
 
 
 def main():
@@ -36,7 +38,47 @@ def main():
     transcribe.daemon = True
     transcribe.start()
 
-    responder = GPTResponder()
+    # Initialize AI adapter with default provider
+    ai_adapter = AIAdapter()
+    
+    # Try to set up a provider with available API keys
+    try:
+        if OPENAI_API_KEY and OPENAI_API_KEY.startswith('sk-'):
+            # Use OpenAI as default provider
+            openai_provider = ai_adapter.create_provider("openai", OPENAI_API_KEY)
+            ai_adapter.set_provider(openai_provider)
+            print(f"Using OpenAI provider with model: {openai_provider.get_model_name()}")
+        elif VOLCENGINE_API_KEY:
+            # Use Volcano Engine as fallback
+            volcano_provider = ai_adapter.create_provider("volcano", VOLCENGINE_API_KEY)
+            ai_adapter.set_provider(volcano_provider)
+            print(f"Using Volcano Engine provider with model: {volcano_provider.get_model_name()}")
+        else:
+            print("WARNING: No valid API keys found. AI responses will not work.")
+            # Create a dummy provider for testing
+            from src.ai.providers.base_provider import AIProvider
+            class DummyProvider(AIProvider):
+                def __init__(self):
+                    super().__init__("dummy-key", "dummy-model")
+                def generate_response(self, prompt: str, **kwargs) -> str:
+                    return "No AI provider configured"
+                def get_provider_name(self) -> str:
+                    return "dummy"
+            ai_adapter.set_provider(DummyProvider())
+    except Exception as e:
+        print(f"Error setting up AI provider: {e}")
+        # Create a dummy provider as fallback
+        from src.ai.providers.base_provider import AIProvider
+        class DummyProvider(AIProvider):
+            def __init__(self):
+                super().__init__("dummy-key", "dummy-model")
+            def generate_response(self, prompt: str, **kwargs) -> str:
+                return f"AI provider error: {e}"
+            def get_provider_name(self) -> str:
+                return "dummy"
+        ai_adapter.set_provider(DummyProvider())
+
+    responder = GPTResponder(ai_adapter)
     respond = threading.Thread(target=responder.respond_to_transcriber, args=(transcriber,))
     respond.daemon = True
     respond.start()
