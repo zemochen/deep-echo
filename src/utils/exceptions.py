@@ -45,6 +45,21 @@ class AIProviderResponseError(AIProviderError):
     pass
 
 
+class AIProviderTimeoutError(AIProviderError):
+    """Raised when AI provider request times out"""
+    pass
+
+
+class AIProviderAuthenticationError(AIProviderError):
+    """Raised when AI provider authentication fails"""
+    pass
+
+
+class AIProviderRateLimitError(AIProviderError):
+    """Raised when AI provider rate limit is exceeded"""
+    pass
+
+
 class ConfigurationError(DeepEchoError):
     """Raised when configuration is invalid or missing"""
     pass

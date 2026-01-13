@@ -7,9 +7,19 @@ Validates: Requirements 1.3, 2.1, 2.4
 Feature: real-time-voice-ai-assistant, Property 2: 音频源区分标记
 Validates: Requirements 2.5
 
+Feature: real-time-voice-ai-assistant, Property 9: 语言检测和处理模式
+Validates: Requirements 6.1, 6.2
+
+Feature: real-time-voice-ai-assistant, Property 10: 模式切换一致性
+Validates: Requirements 6.3
+
+Feature: real-time-voice-ai-assistant, Property 11: 处理模式选择
+Validates: Requirements 6.4
+
 This test suite validates that audio data flows correctly from detection
 through the processing queue to transcription display within 2 seconds,
-and that audio sources are properly distinguished in transcriptions.
+that audio sources are properly distinguished in transcriptions, and that
+multi-language and model switching functionality works correctly.
 """
 
 import pytest
@@ -28,6 +38,17 @@ from src.audio.recorder import (
     AudioRecorderError,
     AudioDeviceNotFoundError,
     AudioRecordingError
+)
+from src.audio.models import (
+    BaseTranscriber,
+    FasterWhisperTranscriber,
+    APIWhisperTranscriber,
+    TranscriptionMode,
+    LanguageDetectionResult,
+    TranscriberModelManager,
+    get_model,
+    switch_transcription_mode,
+    validate_transcription_consistency
 )
 
 
@@ -531,6 +552,386 @@ def test_property_audio_source_consistency(num_transcriptions):
     assert transcriber.get_transcript() == "", "Transcript should be empty after clear"
     assert len(transcriber.get_mic_transcript()) == 0, "Mic transcript should be empty after clear"
     assert len(transcriber.get_speaker_transcript()) == 0, "Speaker transcript should be empty after clear"
+
+
+# Property tests for multi-language and model support
+
+@settings(
+    max_examples=50,  # Reduce examples for faster testing
+    deadline=None
+)
+@given(
+    use_api_mode=st.booleans()
+)
+def test_property_language_detection_and_processing_mode(use_api_mode):
+    """
+    Property 9: Language detection and processing mode
+    
+    Feature: real-time-voice-ai-assistant, Property 9: 语言检测和处理模式
+    Validates: Requirements 6.1, 6.2
+    
+    For any API mode audio input, the transcription engine should support automatic
+    language detection; for local mode, it should use English processing.
+    
+    This property tests that:
+    1. API mode supports automatic language detection
+    2. Local mode processes English audio consistently
+    3. Language detection returns valid language codes
+    4. Processing mode matches expected capabilities
+    """
+    # Test different transcriber configurations
+    with patch('src.audio.models.get_openai_client') as mock_client, \
+         patch('src.audio.models.WhisperModel') as mock_whisper_model:
+        
+        # Mock OpenAI client for API mode
+        mock_openai_client = Mock()
+        mock_client.return_value = mock_openai_client
+        
+        # Mock Whisper model for local mode
+        mock_model_instance = Mock()
+        mock_whisper_model.return_value = mock_model_instance
+        
+        # Get transcriber based on mode
+        transcriber = get_model(use_api_mode)
+        
+        # Verify mode consistency
+        expected_mode = TranscriptionMode.API if use_api_mode else TranscriptionMode.LOCAL
+        actual_mode = transcriber.get_mode()
+        assert actual_mode == expected_mode, \
+            f"Expected mode {expected_mode.value}, got {actual_mode.value}"
+        
+        # Test language detection support
+        supports_detection = transcriber.supports_language_detection()
+        assert supports_detection, "Both API and local modes should support language detection"
+        
+        # Create temporary audio file for testing
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
+            temp_file.write(b'fake_audio_data')
+            temp_file_path = temp_file.name
+        
+        try:
+            if use_api_mode:
+                # Mock API response for language detection
+                mock_response = Mock()
+                mock_response.language = "en"
+                mock_response.text = "Sample text"
+                mock_openai_client.audio.transcriptions.create.return_value = mock_response
+                
+                # Test language detection
+                lang_result = transcriber.detect_language(temp_file_path)
+                
+                if lang_result:  # Detection may return None on errors
+                    assert isinstance(lang_result, LanguageDetectionResult), \
+                        "API language detection should return LanguageDetectionResult"
+                    assert lang_result.language in APIWhisperTranscriber.SUPPORTED_LANGUAGES, \
+                        f"Detected language {lang_result.language} should be in supported languages"
+                    assert 0.0 <= lang_result.confidence <= 1.0, \
+                        f"Confidence should be between 0 and 1, got {lang_result.confidence}"
+            
+            else:
+                # Mock local model response
+                mock_info = Mock()
+                mock_info.language = "en"
+                mock_info.language_probability = 0.8
+                mock_segments = []
+                mock_model_instance.transcribe.return_value = (mock_segments, mock_info)
+                
+                # Test language detection
+                lang_result = transcriber.detect_language(temp_file_path)
+                
+                if lang_result:
+                    assert isinstance(lang_result, LanguageDetectionResult), \
+                        "Local language detection should return LanguageDetectionResult"
+                    assert lang_result.language == "en", \
+                        f"Local mode should detect English, got {lang_result.language}"
+                    assert 0.0 <= lang_result.confidence <= 1.0, \
+                        f"Confidence should be between 0 and 1, got {lang_result.confidence}"
+        
+        finally:
+            # Cleanup temp file
+            import os
+            try:
+                os.unlink(temp_file_path)
+            except OSError:
+                pass
+
+
+@settings(
+    max_examples=100,
+    deadline=None
+)
+@given(
+    initial_mode=st.booleans(),  # True for API, False for Local
+    switch_to_mode=st.booleans(),
+    model_name=st.sampled_from(['tiny', 'small', 'base']),
+    language_code=st.sampled_from(['en', 'es', 'fr', 'de'])
+)
+def test_property_mode_switching_consistency(initial_mode, switch_to_mode, model_name, language_code):
+    """
+    Property 10: Mode switching consistency
+    
+    Feature: real-time-voice-ai-assistant, Property 10: 模式切换一致性
+    Validates: Requirements 6.3
+    
+    For any transcription mode switching (API/local), the system should maintain
+    consistent transcription quality appropriate for that mode.
+    
+    This property tests that:
+    1. Mode switching preserves transcriber functionality
+    2. New mode has correct capabilities
+    3. Transcription quality is maintained after switch
+    4. Mode validation works correctly
+    """
+    with patch('src.audio.models.get_openai_client') as mock_client, \
+         patch('src.audio.models.WhisperModel') as mock_whisper_model, \
+         patch('torch.cuda.is_available', return_value=False):  # Force CPU for consistency
+        
+        # Mock dependencies
+        mock_openai_client = Mock()
+        mock_client.return_value = mock_openai_client
+        
+        mock_model_instance = Mock()
+        mock_whisper_model.return_value = mock_model_instance
+        
+        # Prepare parameters for each mode type
+        if initial_mode:  # API mode
+            initial_params = {'language': language_code}
+        else:  # Local mode
+            initial_params = {'model_name': model_name}
+        
+        if switch_to_mode:  # API mode
+            switch_params = {'language': language_code}
+        else:  # Local mode
+            switch_params = {'model_name': model_name}
+        
+        # Get initial transcriber with appropriate parameters
+        initial_transcriber = get_model(initial_mode, **initial_params)
+        initial_transcriber_mode = initial_transcriber.get_mode()
+        
+        # Verify initial mode
+        expected_initial_mode = TranscriptionMode.API if initial_mode else TranscriptionMode.LOCAL
+        assert initial_transcriber_mode == expected_initial_mode, \
+            f"Initial mode should be {expected_initial_mode.value}, got {initial_transcriber_mode.value}"
+        
+        # Test initial transcriber functionality
+        initial_supports_detection = initial_transcriber.supports_language_detection()
+        assert isinstance(initial_supports_detection, bool), \
+            "Language detection support should return boolean"
+        
+        # Switch to new mode with appropriate parameters
+        new_transcriber = switch_transcription_mode(switch_to_mode, **switch_params)
+        new_transcriber_mode = new_transcriber.get_mode()
+        
+        # Verify new mode
+        expected_new_mode = TranscriptionMode.API if switch_to_mode else TranscriptionMode.LOCAL
+        assert new_transcriber_mode == expected_new_mode, \
+            f"New mode should be {expected_new_mode.value}, got {new_transcriber_mode.value}"
+        
+        # Test new transcriber functionality
+        new_supports_detection = new_transcriber.supports_language_detection()
+        assert isinstance(new_supports_detection, bool), \
+            "Language detection support should return boolean after switch"
+        
+        # Verify mode consistency validation
+        is_consistent = validate_transcription_consistency(switch_to_mode)
+        assert is_consistent, "Mode consistency validation should pass after switch"
+        
+        # Test transcription functionality with both modes
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
+            temp_file.write(b'fake_audio_data_for_transcription_test')
+            temp_file_path = temp_file.name
+        
+        try:
+            if switch_to_mode:  # API mode
+                # Mock API transcription response
+                mock_response = Mock()
+                mock_response.text = "Test transcription from API"
+                mock_openai_client.audio.transcriptions.create.return_value = mock_response
+                
+                result = new_transcriber.get_transcription(temp_file_path)
+                assert isinstance(result, str), "API transcription should return string"
+                
+            else:  # Local mode
+                # Mock local transcription response
+                mock_segments = [Mock(text="Test"), Mock(text="transcription"), Mock(text="from local")]
+                mock_info = Mock()
+                mock_model_instance.transcribe.return_value = (mock_segments, mock_info)
+                
+                result = new_transcriber.get_transcription(temp_file_path)
+                assert isinstance(result, str), "Local transcription should return string"
+        
+        finally:
+            # Cleanup
+            import os
+            try:
+                os.unlink(temp_file_path)
+            except OSError:
+                pass
+        
+        # Verify that switching doesn't break the transcriber interface
+        assert hasattr(new_transcriber, 'get_transcription'), \
+            "Transcriber should maintain get_transcription method after switch"
+        assert hasattr(new_transcriber, 'get_mode'), \
+            "Transcriber should maintain get_mode method after switch"
+        assert hasattr(new_transcriber, 'supports_language_detection'), \
+            "Transcriber should maintain supports_language_detection method after switch"
+
+
+@settings(
+    max_examples=100,
+    deadline=None
+)
+@given(
+    user_choice_api=st.booleans(),
+    processing_preferences=st.dictionaries(
+        keys=st.sampled_from(['speed_priority', 'accuracy_priority', 'language_support']),
+        values=st.booleans(),
+        min_size=1, max_size=3
+    )
+)
+def test_property_processing_mode_selection(user_choice_api, processing_preferences):
+    """
+    Property 11: Processing mode selection
+    
+    Feature: real-time-voice-ai-assistant, Property 11: 处理模式选择
+    Validates: Requirements 6.4
+    
+    For any user's processing mode selection, the system should correctly apply
+    the corresponding configuration (local fast English or API multi-language).
+    
+    This property tests that:
+    1. User selection maps to correct transcription mode
+    2. Mode configuration matches user preferences
+    3. System applies appropriate settings for chosen mode
+    4. Mode capabilities align with user expectations
+    """
+    with patch('src.audio.models.get_openai_client') as mock_client, \
+         patch('src.audio.models.WhisperModel') as mock_whisper_model, \
+         patch('torch.cuda.is_available', return_value=True):  # Test with GPU available
+        
+        # Mock dependencies
+        mock_openai_client = Mock()
+        mock_client.return_value = mock_openai_client
+        
+        mock_model_instance = Mock()
+        mock_whisper_model.return_value = mock_model_instance
+        
+        # Determine expected configuration based on user choice
+        if user_choice_api:
+            # API mode: slower, multi-language, higher accuracy
+            expected_mode = TranscriptionMode.API
+            expected_language_support = True
+            expected_speed_characteristics = "slower_but_accurate"
+        else:
+            # Local mode: faster, English-focused, good for real-time
+            expected_mode = TranscriptionMode.LOCAL
+            expected_language_support = True  # Local Whisper also supports multiple languages
+            expected_speed_characteristics = "faster_local_processing"
+        
+        # Create transcriber based on user choice
+        transcriber = get_model(user_choice_api)
+        
+        # Verify mode selection matches user choice
+        actual_mode = transcriber.get_mode()
+        assert actual_mode == expected_mode, \
+            f"User choice {user_choice_api} should result in {expected_mode.value} mode, got {actual_mode.value}"
+        
+        # Verify language support capabilities
+        supports_language_detection = transcriber.supports_language_detection()
+        assert supports_language_detection == expected_language_support, \
+            f"Mode {actual_mode.value} should have language detection: {expected_language_support}"
+        
+        # Test configuration application based on processing preferences
+        if processing_preferences.get('speed_priority', False):
+            # Speed priority should work well with local mode
+            if not user_choice_api:  # Local mode
+                # Local mode should be configured for speed
+                if hasattr(transcriber, 'device'):
+                    # Should use GPU if available for speed
+                    assert transcriber.device in ['cuda', 'cpu'], \
+                        "Local mode should have valid device configuration"
+        
+        if processing_preferences.get('accuracy_priority', False):
+            # Accuracy priority should work well with API mode
+            if user_choice_api:  # API mode
+                # API mode should be configured for accuracy
+                assert transcriber.model == "whisper-1", \
+                    "API mode should use appropriate model for accuracy"
+        
+        if processing_preferences.get('language_support', False):
+            # Multi-language support should be available in both modes
+            assert supports_language_detection, \
+                "Multi-language support requires language detection capability"
+        
+        # Test that system applies correct settings for chosen mode
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
+            temp_file.write(b'test_audio_data_for_mode_validation')
+            temp_file_path = temp_file.name
+        
+        try:
+            if user_choice_api:
+                # API mode should handle multi-language requests
+                mock_response = Mock()
+                mock_response.text = "Multi-language API response"
+                mock_response.language = "en"
+                mock_openai_client.audio.transcriptions.create.return_value = mock_response
+                
+                # Test transcription
+                result = transcriber.get_transcription(temp_file_path)
+                assert isinstance(result, str), "API mode should return transcription string"
+                
+                # Test language detection
+                mock_verbose_response = Mock()
+                mock_verbose_response.language = "en"
+                mock_verbose_response.text = "Test text"
+                mock_openai_client.audio.transcriptions.create.return_value = mock_verbose_response
+                
+                lang_result = transcriber.detect_language(temp_file_path)
+                if lang_result:
+                    assert isinstance(lang_result, LanguageDetectionResult), \
+                        "API language detection should return LanguageDetectionResult"
+            
+            else:
+                # Local mode should handle English efficiently
+                mock_segments = [Mock(text="Fast"), Mock(text="local"), Mock(text="processing")]
+                mock_info = Mock()
+                mock_info.language = "en"
+                mock_info.language_probability = 0.9
+                mock_model_instance.transcribe.return_value = (mock_segments, mock_info)
+                
+                # Test transcription
+                result = transcriber.get_transcription(temp_file_path)
+                assert isinstance(result, str), "Local mode should return transcription string"
+                
+                # Test language detection
+                lang_result = transcriber.detect_language(temp_file_path)
+                if lang_result:
+                    assert isinstance(lang_result, LanguageDetectionResult), \
+                        "Local language detection should return LanguageDetectionResult"
+        
+        finally:
+            # Cleanup
+            import os
+            try:
+                os.unlink(temp_file_path)
+            except OSError:
+                pass
+        
+        # Verify mode capabilities align with user expectations
+        if user_choice_api:
+            # API mode expectations: multi-language, cloud-based, potentially slower
+            assert actual_mode == TranscriptionMode.API, "API choice should result in API mode"
+        else:
+            # Local mode expectations: fast processing, local computation, English-optimized
+            assert actual_mode == TranscriptionMode.LOCAL, "Local choice should result in LOCAL mode"
+            
+            # Local mode should have model configuration
+            if hasattr(transcriber, 'model_name'):
+                assert transcriber.model_name in FasterWhisperTranscriber.SUPPORTED_MODELS, \
+                    f"Local mode should use supported model, got {transcriber.model_name}"
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ transcript management, threading, and proper audio source distinction.
 
 import wave
 import os
+import time
 import threading
 import tempfile
 import queue
@@ -19,6 +20,9 @@ import pyaudio
 
 from src.utils.logger import get_logger
 from src.utils.exceptions import AudioTranscriptionError
+from src.utils.retry import retry_with_backoff, RetryConfig
+from src.utils.error_recovery import error_tracker, resource_cleanup_manager
+from src.audio.models import BaseTranscriber, TranscriptionMode, LanguageDetectionResult
 
 # Constants
 PHRASE_TIMEOUT = 3.05
@@ -36,14 +40,14 @@ class AudioTranscriber:
     manages transcription history, and provides thread-safe access to results.
     """
     
-    def __init__(self, mic_source: sr.Microphone, speaker_source: sr.Microphone, model: Any):
+    def __init__(self, mic_source: sr.Microphone, speaker_source: sr.Microphone, model: BaseTranscriber):
         """
         Initialize the audio transcriber.
         
         Args:
             mic_source: Microphone audio source
             speaker_source: Speaker audio source  
-            model: Speech recognition model with get_transcription method
+            model: Speech recognition model implementing BaseTranscriber interface
         """
         # Initialize transcript data storage
         self.transcript_data: Dict[str, List[Tuple[str, datetime]]] = {
@@ -85,6 +89,10 @@ class AudioTranscriber:
         # Processing state
         self._is_running = False
         self._processing_thread = None
+        
+        # Register cleanup handlers for resource management
+        resource_cleanup_manager.register_cleanup_handler(self._cleanup_temp_files)
+        resource_cleanup_manager.register_resource_monitor("transcriber_queues", self._get_queue_metrics)
         
         logger.info("AudioTranscriber initialized successfully")
     
@@ -179,6 +187,10 @@ class AudioTranscriber:
                 break
         return data
     
+    @retry_with_backoff(
+        exceptions=(AudioTranscriptionError, OSError, IOError),
+        config=RetryConfig(max_attempts=2, base_delay=0.5, backoff_factor=1.5)
+    )
     def _process_audio_source(self, source_name: str, audio_data: List[Tuple[bytes, datetime]]) -> Optional[Tuple[str, str, datetime]]:
         """
         Process audio data from a specific source.
@@ -217,8 +229,10 @@ class AudioTranscriber:
                 return (source_name, text.strip(), latest_time)
                 
         except Exception as e:
+            error = AudioTranscriptionError(f"Failed to transcribe {source_name} audio: {e}")
+            error_tracker.record_error(error, f"transcriber_{source_name.lower()}")
             logger.error(f"Transcription error for {source_name}: {e}")
-            raise AudioTranscriptionError(f"Failed to transcribe {source_name} audio: {e}")
+            raise error
         finally:
             if temp_file_path and os.path.exists(temp_file_path):
                 try:
@@ -448,6 +462,127 @@ class AudioTranscriber:
             # Remove the function reference for serialization
             source_info.pop("process_data_func", None)
             return source_info
+    
+    def get_transcription_mode(self) -> TranscriptionMode:
+        """
+        Get the current transcription mode.
+        
+        Returns:
+            Current TranscriptionMode
+        """
+        return self.audio_model.get_mode()
+    
+    def supports_language_detection(self) -> bool:
+        """
+        Check if the current model supports language detection.
+        
+        Returns:
+            True if language detection is supported
+        """
+        return self.audio_model.supports_language_detection()
+    
+    def detect_language_from_audio(self, audio_file_path: str) -> Optional[LanguageDetectionResult]:
+        """
+        Detect language from an audio file using the current model.
+        
+        Args:
+            audio_file_path: Path to the audio file
+            
+        Returns:
+            LanguageDetectionResult if detection is supported and successful
+        """
+        try:
+            return self.audio_model.detect_language(audio_file_path)
+        except Exception as e:
+            logger.error(f"Language detection failed: {e}")
+            return None
+    
+    def switch_transcription_model(self, new_model: BaseTranscriber) -> bool:
+        """
+        Switch to a new transcription model.
+        
+        Args:
+            new_model: New BaseTranscriber instance
+            
+        Returns:
+            True if switch was successful
+        """
+        try:
+            old_mode = self.audio_model.get_mode()
+            self.audio_model = new_model
+            new_mode = new_model.get_mode()
+            
+            logger.info(f"Switched transcription model from {old_mode.value} to {new_mode.value}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to switch transcription model: {e}")
+            return False
+    
+    def validate_model_consistency(self, expected_mode: TranscriptionMode) -> bool:
+        """
+        Validate that current model matches expected transcription mode.
+        
+        Args:
+            expected_mode: Expected transcription mode
+            
+        Returns:
+            True if modes are consistent
+        """
+        actual_mode = self.audio_model.get_mode()
+        is_consistent = actual_mode == expected_mode
+        
+        if not is_consistent:
+            logger.warning(f"Model mode inconsistency: expected {expected_mode.value}, got {actual_mode.value}")
+        
+        return is_consistent
+    
+    def _cleanup_temp_files(self) -> None:
+        """Cleanup temporary transcription files."""
+        import glob
+        
+        try:
+            # Clean up any leftover temporary audio files
+            temp_pattern = "/tmp/tmp*.wav"  # Unix-like systems
+            if os.name == 'nt':  # Windows
+                temp_pattern = os.path.join(tempfile.gettempdir(), "tmp*.wav")
+            
+            temp_files = glob.glob(temp_pattern)
+            cleaned_count = 0
+            
+            for temp_file in temp_files:
+                try:
+                    # Only clean files older than 1 hour
+                    file_age = time.time() - os.path.getmtime(temp_file)
+                    if file_age > 3600:  # 1 hour
+                        os.unlink(temp_file)
+                        cleaned_count += 1
+                except OSError:
+                    pass  # File may already be deleted
+            
+            if cleaned_count > 0:
+                logger.debug(f"Cleaned up {cleaned_count} temporary audio files")
+                
+        except Exception as e:
+            logger.warning(f"Error during temp file cleanup: {e}")
+    
+    def _get_queue_metrics(self) -> Dict[str, Any]:
+        """
+        Get metrics about internal queues and processing state.
+        
+        Returns:
+            Dictionary with queue metrics
+        """
+        with self._lock:
+            return {
+                "transcript_entries_you": len(self.transcript_data["You"]),
+                "transcript_entries_speaker": len(self.transcript_data["Speaker"]),
+                "is_running": self._is_running,
+                "processing_thread_alive": (
+                    self._processing_thread.is_alive() 
+                    if self._processing_thread else False
+                ),
+                "audio_sources_count": len(self.audio_sources)
+            }
 
 
 # Legacy compatibility function

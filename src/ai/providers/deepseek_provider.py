@@ -18,6 +18,8 @@ from .base_provider import (
     AIProviderRateLimitError,
     AIProviderTimeoutError
 )
+from src.utils.retry import retry_with_backoff, RetryConfig, circuit_breaker
+from src.utils.error_recovery import error_tracker
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +55,20 @@ class DeepSeekProvider(AIProvider):
         if model not in supported_models:
             logger.warning(f"Model {model} may not be supported. Supported models: {supported_models}")
     
+    @retry_with_backoff(
+        exceptions=(
+            requests.exceptions.ConnectionError,
+            requests.exceptions.Timeout,
+            AIProviderConnectionError,
+            AIProviderTimeoutError
+        ),
+        config=RetryConfig(max_attempts=3, base_delay=1.0, backoff_factor=2.0)
+    )
+    @circuit_breaker(
+        failure_threshold=5,
+        recovery_timeout=60.0,
+        expected_exception=AIProviderError
+    )
     def generate_response(self, prompt: str, **kwargs) -> str:
         """
         Generate a response using DeepSeek API.
@@ -69,6 +85,9 @@ class DeepSeekProvider(AIProvider):
         """
         if not prompt.strip():
             raise ValueError("Prompt cannot be empty")
+        
+        # Record attempt for error tracking
+        component = f"deepseek_provider_{self.model}"
         
         # Prepare request data
         data = {
@@ -88,81 +107,66 @@ class DeepSeekProvider(AIProvider):
         
         url = f"{self.base_url}/chat/completions"
         
-        # Retry logic with exponential backoff
-        for attempt in range(self.max_retries):
-            try:
-                logger.debug(f"DeepSeek API request attempt {attempt + 1}/{self.max_retries}")
-                
-                response = requests.post(
-                    url,
-                    json=data,
-                    headers=headers,
-                    timeout=self.timeout
-                )
-                
-                # Handle different HTTP status codes
-                if response.status_code == 200:
-                    result = response.json()
-                    if "choices" in result and len(result["choices"]) > 0:
-                        content = result["choices"][0]["message"]["content"]
-                        logger.debug("DeepSeek API request successful")
-                        return content.strip()
-                    else:
-                        raise AIProviderError("Invalid response format from DeepSeek API")
-                
-                elif response.status_code == 401:
-                    raise AIProviderAuthenticationError("Invalid API key for DeepSeek")
-                
-                elif response.status_code == 429:
-                    if attempt < self.max_retries - 1:
-                        wait_time = (2 ** attempt) * 1  # Exponential backoff
-                        logger.warning(f"Rate limit hit, waiting {wait_time}s before retry")
-                        time.sleep(wait_time)
-                        continue
-                    else:
-                        raise AIProviderRateLimitError("DeepSeek API rate limit exceeded")
-                
-                elif response.status_code >= 500:
-                    if attempt < self.max_retries - 1:
-                        wait_time = (2 ** attempt) * 1
-                        logger.warning(f"Server error {response.status_code}, waiting {wait_time}s before retry")
-                        time.sleep(wait_time)
-                        continue
-                    else:
-                        raise AIProviderConnectionError(f"DeepSeek API server error: {response.status_code}")
-                
+        try:
+            logger.debug(f"DeepSeek API request to {url}")
+            
+            response = requests.post(
+                url,
+                json=data,
+                headers=headers,
+                timeout=self.timeout
+            )
+            
+            # Handle different HTTP status codes
+            if response.status_code == 200:
+                result = response.json()
+                if "choices" in result and len(result["choices"]) > 0:
+                    content = result["choices"][0]["message"]["content"]
+                    logger.debug("DeepSeek API request successful")
+                    return content.strip()
                 else:
-                    error_msg = f"DeepSeek API error: {response.status_code} - {response.text}"
-                    raise AIProviderError(error_msg)
-                    
-            except requests.exceptions.Timeout:
-                if attempt < self.max_retries - 1:
-                    wait_time = (2 ** attempt) * 1
-                    logger.warning(f"Request timeout, waiting {wait_time}s before retry")
-                    time.sleep(wait_time)
-                    continue
-                else:
-                    raise AIProviderTimeoutError("DeepSeek API request timed out")
-                    
-            except requests.exceptions.ConnectionError:
-                if attempt < self.max_retries - 1:
-                    wait_time = (2 ** attempt) * 1
-                    logger.warning(f"Connection error, waiting {wait_time}s before retry")
-                    time.sleep(wait_time)
-                    continue
-                else:
-                    raise AIProviderConnectionError("Failed to connect to DeepSeek API")
-                    
-            except Exception as e:
-                if attempt < self.max_retries - 1:
-                    wait_time = (2 ** attempt) * 1
-                    logger.warning(f"Unexpected error: {e}, waiting {wait_time}s before retry")
-                    time.sleep(wait_time)
-                    continue
-                else:
-                    raise AIProviderError(f"DeepSeek API request failed: {str(e)}")
-        
-        raise AIProviderError("All retry attempts failed")
+                    error = AIProviderError("Invalid response format from DeepSeek API")
+                    error_tracker.record_error(error, component)
+                    raise error
+            
+            elif response.status_code == 401:
+                error = AIProviderAuthenticationError("Invalid API key for DeepSeek")
+                error_tracker.record_error(error, component, "critical")
+                raise error
+            
+            elif response.status_code == 429:
+                error = AIProviderRateLimitError("DeepSeek API rate limit exceeded")
+                error_tracker.record_error(error, component, "warning")
+                raise error
+            
+            elif response.status_code >= 500:
+                error = AIProviderConnectionError(f"DeepSeek API server error: {response.status_code}")
+                error_tracker.record_error(error, component)
+                raise error
+            
+            else:
+                error_msg = f"DeepSeek API error: {response.status_code} - {response.text}"
+                error = AIProviderError(error_msg)
+                error_tracker.record_error(error, component)
+                raise error
+                
+        except requests.exceptions.Timeout as e:
+            error = AIProviderTimeoutError("DeepSeek API request timed out")
+            error_tracker.record_error(error, component)
+            raise error
+            
+        except requests.exceptions.ConnectionError as e:
+            error = AIProviderConnectionError("Failed to connect to DeepSeek API")
+            error_tracker.record_error(error, component)
+            raise error
+            
+        except Exception as e:
+            if not isinstance(e, AIProviderError):
+                error = AIProviderError(f"DeepSeek API request failed: {str(e)}")
+                error_tracker.record_error(error, component)
+                raise error
+            else:
+                raise e
     
     def get_provider_name(self) -> str:
         """

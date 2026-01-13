@@ -13,6 +13,9 @@ from typing import Optional, Callable
 import queue
 
 from src.audio_system import get_default_speaker
+from src.utils.retry import retry_with_backoff, RetryConfig
+from src.utils.error_recovery import error_tracker, device_recovery_manager
+from src.utils.exceptions import AudioError, AudioDeviceError
 
 try:
     import pyaudiowpatch as pyaudio
@@ -31,12 +34,12 @@ ENERGY_THRESHOLD = 1000
 DYNAMIC_ENERGY_THRESHOLD = False
 
 
-class AudioRecorderError(Exception):
+class AudioRecorderError(AudioError):
     """Base exception for audio recorder errors"""
     pass
 
 
-class AudioDeviceNotFoundError(AudioRecorderError):
+class AudioDeviceNotFoundError(AudioDeviceError):
     """Raised when audio device is not found"""
     pass
 
@@ -79,6 +82,10 @@ class BaseRecorder:
             logger.error(f"Failed to initialize BaseRecorder: {e}")
             raise AudioRecorderError(f"Recorder initialization failed: {e}")
 
+    @retry_with_backoff(
+        exceptions=(OSError, AudioRecorderError),
+        config=RetryConfig(max_attempts=3, base_delay=0.5, backoff_factor=1.5)
+    )
     def adjust_for_noise(self, device_name: str, msg: str) -> None:
         """
         Adjust for ambient noise from the audio source.
@@ -96,8 +103,10 @@ class BaseRecorder:
                 self.recorder.adjust_for_ambient_noise(self.source)
             logger.info(f"Completed ambient noise adjustment for {device_name}")
         except Exception as e:
+            error = AudioRecorderError(f"Noise adjustment failed for {device_name}: {e}")
+            error_tracker.record_error(error, f"audio_recorder_{device_name}")
             logger.error(f"Failed to adjust for ambient noise on {device_name}: {e}")
-            raise AudioRecorderError(f"Noise adjustment failed for {device_name}: {e}")
+            raise error
 
     def record_into_queue(self, audio_queue: queue.Queue) -> None:
         """
@@ -115,6 +124,8 @@ class BaseRecorder:
                 data = audio.get_raw_data()
                 audio_queue.put((data, datetime.utcnow()))
             except Exception as e:
+                error = AudioRecordingError(f"Error in record callback: {e}")
+                error_tracker.record_error(error, "audio_recorder_callback")
                 logger.error(f"Error in record callback: {e}")
 
         try:
@@ -125,8 +136,10 @@ class BaseRecorder:
             )
             logger.info("Background recording started successfully")
         except Exception as e:
+            error = AudioRecordingError(f"Background recording failed: {e}")
+            error_tracker.record_error(error, "audio_recorder_background")
             logger.error(f"Failed to start background recording: {e}")
-            raise AudioRecordingError(f"Background recording failed: {e}")
+            raise error
     
     def stop_recording(self) -> None:
         """Stop background recording if active"""
@@ -158,13 +171,59 @@ class DefaultMicRecorder(BaseRecorder):
             source = sr.Microphone(sample_rate=16000)
             super().__init__(source=source)
             self.adjust_for_noise("Default Mic", "Please make some noise from the Default Mic...")
+            
+            # Register device for recovery
+            device_recovery_manager.register_device(
+                "default_microphone",
+                self._recover_microphone,
+                {"device_type": "microphone", "sample_rate": 16000}
+            )
+            
             logger.info("Default microphone recorder initialized successfully")
         except OSError as e:
+            error = AudioDeviceNotFoundError(f"Default microphone not available: {e}")
+            error_tracker.record_error(error, "default_microphone", "critical")
             logger.error(f"Default microphone not found: {e}")
-            raise AudioDeviceNotFoundError(f"Default microphone not available: {e}")
+            raise error
         except Exception as e:
+            error = AudioRecorderError(f"Microphone initialization failed: {e}")
+            error_tracker.record_error(error, "default_microphone")
             logger.error(f"Failed to initialize default microphone: {e}")
-            raise AudioRecorderError(f"Microphone initialization failed: {e}")
+            raise error
+    
+    def _recover_microphone(self, device_id: str, error: Exception) -> bool:
+        """
+        Attempt to recover the microphone device.
+        
+        Args:
+            device_id: Device identifier
+            error: Original error that caused failure
+            
+        Returns:
+            True if recovery was successful
+        """
+        try:
+            logger.info(f"Attempting microphone recovery for {device_id}")
+            
+            # Stop current recording if active
+            self.stop_recording()
+            
+            # Reinitialize microphone source
+            new_source = sr.Microphone(sample_rate=16000)
+            self.source = new_source
+            self.recorder = sr.Recognizer()
+            self.recorder.energy_threshold = ENERGY_THRESHOLD
+            self.recorder.dynamic_energy_threshold = DYNAMIC_ENERGY_THRESHOLD
+            
+            # Test the new source
+            self.adjust_for_noise("Default Mic (Recovered)", "Testing recovered microphone...")
+            
+            logger.info("Microphone recovery successful")
+            return True
+            
+        except Exception as recovery_error:
+            logger.error(f"Microphone recovery failed: {recovery_error}")
+            return False
 
 
 class DefaultSpeakerRecorder(BaseRecorder):
@@ -175,6 +234,10 @@ class DefaultSpeakerRecorder(BaseRecorder):
     using platform-specific loopback devices.
     """
 
+    @retry_with_backoff(
+        exceptions=(AudioDeviceNotFoundError, OSError),
+        config=RetryConfig(max_attempts=3, base_delay=1.0, backoff_factor=2.0)
+    )
     def _get_default_speaker(self) -> dict:
         """
         Get default speaker device information using audio_system module.
@@ -190,13 +253,20 @@ class DefaultSpeakerRecorder(BaseRecorder):
             speaker_info = get_default_speaker()
             
             if speaker_info is None:
-                raise AudioDeviceNotFoundError("No default speaker device found")
+                error = AudioDeviceNotFoundError("No default speaker device found")
+                error_tracker.record_error(error, "default_speaker")
+                raise error
             
             logger.info(f"Found speaker device: {speaker_info.get('name', 'Unknown')}")
             return speaker_info
         except Exception as e:
-            logger.error(f"Failed to get default speaker: {e}")
-            raise AudioDeviceNotFoundError(f"Speaker device not available: {e}")
+            if not isinstance(e, AudioDeviceNotFoundError):
+                error = AudioDeviceNotFoundError(f"Speaker device not available: {e}")
+                error_tracker.record_error(error, "default_speaker")
+                logger.error(f"Failed to get default speaker: {e}")
+                raise error
+            else:
+                raise e
 
     def __init__(self):
         """
@@ -220,9 +290,76 @@ class DefaultSpeakerRecorder(BaseRecorder):
             
             super().__init__(source=source)
             self.adjust_for_noise("Default Speaker", "Please make or play some noise from the Default Speaker...")
+            
+            # Register device for recovery
+            device_recovery_manager.register_device(
+                "default_speaker",
+                self._recover_speaker,
+                {
+                    "device_type": "speaker",
+                    "device_index": default_speakers["index"],
+                    "sample_rate": default_speakers["defaultSampleRate"],
+                    "channels": default_speakers["maxInputChannels"]
+                }
+            )
+            
             logger.info("Default speaker recorder initialized successfully")
         except AudioDeviceNotFoundError:
             raise
         except Exception as e:
+            error = AudioRecorderError(f"Speaker initialization failed: {e}")
+            error_tracker.record_error(error, "default_speaker")
             logger.error(f"Failed to initialize default speaker: {e}")
-            raise AudioRecorderError(f"Speaker initialization failed: {e}")
+            raise error
+    
+    def _recover_speaker(self, device_id: str, error: Exception) -> bool:
+        """
+        Attempt to recover the speaker device.
+        
+        Args:
+            device_id: Device identifier
+            error: Original error that caused failure
+            
+        Returns:
+            True if recovery was successful
+        """
+        try:
+            logger.info(f"Attempting speaker recovery for {device_id}")
+            
+            # Stop current recording if active
+            self.stop_recording()
+            
+            # Get fresh speaker information
+            default_speakers = self._get_default_speaker()
+            
+            # Reinitialize speaker source
+            new_source = sr.Microphone(
+                speaker=True,
+                device_index=default_speakers["index"],
+                sample_rate=int(default_speakers["defaultSampleRate"]),
+                chunk_size=pyaudio.get_sample_size(pyaudio.paInt16),
+                channels=default_speakers["maxInputChannels"]
+            )
+            
+            self.source = new_source
+            self.recorder = sr.Recognizer()
+            self.recorder.energy_threshold = ENERGY_THRESHOLD
+            self.recorder.dynamic_energy_threshold = DYNAMIC_ENERGY_THRESHOLD
+            
+            # Test the new source
+            self.adjust_for_noise("Default Speaker (Recovered)", "Testing recovered speaker...")
+            
+            # Update device state
+            device_recovery_manager.update_device_state(device_id, {
+                "device_index": default_speakers["index"],
+                "sample_rate": default_speakers["defaultSampleRate"],
+                "channels": default_speakers["maxInputChannels"],
+                "last_recovery": datetime.now().isoformat()
+            })
+            
+            logger.info("Speaker recovery successful")
+            return True
+            
+        except Exception as recovery_error:
+            logger.error(f"Speaker recovery failed: {recovery_error}")
+            return False
