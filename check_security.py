@@ -206,8 +206,8 @@ def scan_for_exposed_keys():
     # Files to scan (excluding keys.py which should be ignored)
     files_to_scan = [
         'config.json',
-        'config.deepseek.json',
-        'config.openai.json',
+        'resources/config.deepseek.json',
+        'resources/config.openai.json',
         'README.md',
         'SECURITY.md',
     ]

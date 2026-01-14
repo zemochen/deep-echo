@@ -52,7 +52,7 @@ print('   "whisper_model": "./whisper-tiny.en-ct2"')
 print('   "whisper_model_path": "./whisper-tiny.en-ct2"')
 print()
 
-print("\n推荐配置 (config.deepseek.json):")
+print("\n推荐配置 (resources/config.deepseek.json):")
 print("-" * 70)
 print('''{
   "audio": {

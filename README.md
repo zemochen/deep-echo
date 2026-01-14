@@ -51,7 +51,7 @@ DeepEcho is a comprehensive real-time voice transcription and AI assistant syste
 
    **Method 1: Configuration File (Recommended)**
    ```bash
-   cp config.example.json config.json
+   cp resources/config.example.json config.json
    # Edit config.json and add your API key
    ```
 
@@ -128,9 +128,9 @@ python main.py --verbose
 
 DeepEcho supports multiple configuration presets:
 
-- `config.example.json` - Template configuration
-- `config.deepseek.json` - DeepSeek optimized settings
-- `config.openai.json` - OpenAI optimized settings
+- `resources/config.example.json` - Template configuration
+- `resources/config.deepseek.json` - DeepSeek optimized settings
+- `resources/config.openai.json` - OpenAI optimized settings
 
 ### Configuration Options
 
@@ -243,7 +243,7 @@ If upgrading from an older version:
 1. **Backup your keys.py file**
 2. **Create new configuration file**:
    ```bash
-   cp config.example.json config.json
+   cp resources/config.example.json config.json
    ```
 3. **Update your API keys in the new format**
 4. **Test with**: `python main.py --legacy` (fallback mode)

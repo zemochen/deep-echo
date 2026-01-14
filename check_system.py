@@ -185,7 +185,7 @@ def check_deepecho_files():
     
     optional_files = [
         "config.json",
-        "config.example.json",
+        "resources/config.example.json",
         "keys.py",
         "README.md",
         "API_SETUP.md",
@@ -319,7 +319,7 @@ def provide_recommendations(issues):
         elif "configuration" in issue:
             print("⚙️  Configuration:")
             print("   1. Run: python setup.py")
-            print("   2. Or copy config.example.json to config.json")
+            print("   2. Or copy resources/config.example.json to config.json")
             print("   3. Add your AI provider API key")
             print("   4. See API_SETUP.md for detailed instructions")
 

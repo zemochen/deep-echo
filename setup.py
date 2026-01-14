@@ -109,10 +109,10 @@ def create_config_file():
     
     # Load example config
     try:
-        with open("config.example.json", "r") as f:
+        with open("resources/config.example.json", "r") as f:
             config = json.load(f)
     except FileNotFoundError:
-        print("❌ config.example.json not found")
+        print("❌ resources/config.example.json not found")
         return False
     
     print("\n🤖 AI Provider Setup")

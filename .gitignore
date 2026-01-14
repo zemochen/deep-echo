@@ -29,6 +29,12 @@ keys.py
 *.pem
 secrets.json
 config.local.json
+
+# User Configuration (exclude from git)
+/config.json
+
+# But keep template configurations in resources/
+!resources/*.json
 # General
 .DS_Store
 __MACOSX/

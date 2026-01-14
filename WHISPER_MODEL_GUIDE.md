@@ -4,7 +4,7 @@
 
 ### 推荐配置（最简单）
 
-编辑 `config.deepseek.json`：
+编辑 `resources/config.deepseek.json`：
 
 ```json
 {

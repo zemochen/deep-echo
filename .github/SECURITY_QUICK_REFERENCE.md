@@ -47,7 +47,7 @@ python check_security.py
 ## ✅ Files Safe to Commit
 
 - ✅ `keys.example.py` - Template (no real keys)
-- ✅ `config.example.json` - Template configuration
+- ✅ `resources/config.example.json` - Template configuration
 - ✅ `.gitignore` - Git ignore rules
 - ✅ `SECURITY.md` - Security documentation
 
