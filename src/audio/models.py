@@ -199,6 +199,12 @@ class FasterWhisperTranscriber(BaseTranscriber):
             raise AudioTranscriptionError(f"Audio file not found: {wav_file_path}")
         
         try:
+            # Check audio file size - skip if too small (likely silence/noise)
+            file_size = os.path.getsize(wav_file_path)
+            if file_size < 1024:  # Less than 1KB
+                logger.debug(f"Skipping transcription - audio file too small: {file_size} bytes")
+                return ''
+            
             # Use language detection for better accuracy if available
             language = None
             if self.supports_language_detection():
@@ -206,18 +212,46 @@ class FasterWhisperTranscriber(BaseTranscriber):
                 if lang_result and lang_result.confidence > 0.5:
                     language = lang_result.language
             
-            # Transcribe with detected language
+            # Transcribe with improved parameters to reduce garbage output
             segments, info = self.model.transcribe(
                 wav_file_path, 
                 beam_size=5,
                 language=language,
-                condition_on_previous_text=False
+                condition_on_previous_text=False,
+                vad_filter=True,  # Enable Voice Activity Detection to filter silence
+                vad_parameters={
+                    "threshold": 0.5,  # Higher threshold = more strict voice detection
+                    "min_speech_duration_ms": 250,  # Minimum 250ms of speech
+                    "min_silence_duration_ms": 500  # Minimum 500ms silence between phrases
+                },
+                no_speech_threshold=0.6,  # Skip segments with low speech probability
+                log_prob_threshold=-1.0,  # Filter low confidence segments
+                compression_ratio_threshold=2.4  # Filter repetitive/garbage text
             )
             
-            full_text = " ".join(segment.text for segment in segments)
+            # Collect segments and filter out low-quality ones
+            valid_segments = []
+            for segment in segments:
+                # Skip segments that are too short or have low confidence
+                if len(segment.text.strip()) < 2:
+                    continue
+                
+                # Skip segments with very low average log probability
+                if hasattr(segment, 'avg_logprob') and segment.avg_logprob < -1.0:
+                    logger.debug(f"Skipping low confidence segment: {segment.text[:30]}")
+                    continue
+                
+                # Skip segments with high compression ratio (repetitive text)
+                if hasattr(segment, 'compression_ratio') and segment.compression_ratio > 2.4:
+                    logger.debug(f"Skipping repetitive segment: {segment.text[:30]}")
+                    continue
+                
+                valid_segments.append(segment.text)
+            
+            full_text = " ".join(valid_segments)
             result = full_text.strip()
             
-            logger.debug(f"Local transcription completed: {len(result)} characters")
+            logger.debug(f"Local transcription completed: {len(result)} characters from {len(valid_segments)} segments")
             return result
             
         except Exception as e:

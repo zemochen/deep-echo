@@ -1,6 +1,8 @@
 {
   "audio": {
     "use_api_mode": false,
+    "whisper_model": "small",
+    "whisper_model_path": null,
     "record_timeout": 3,
     "phrase_timeout": 3.05,
     "energy_threshold": 1000,

@@ -39,6 +39,8 @@ class AudioConfig:
     max_phrases: int = 10
     energy_threshold: int = 1000
     use_api_mode: bool = False
+    whisper_model: str = "small"
+    whisper_model_path: Optional[str] = None
 
 
 @dataclass

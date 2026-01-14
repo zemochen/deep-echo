@@ -36,6 +36,17 @@ DeepEcho is a comprehensive real-time voice transcription and AI assistant syste
    pip install -r requirements.txt
    ```
 
+3. **Set up security (Recommended):**
+   ```bash
+   # Linux/macOS
+   chmod +x setup_security.sh
+   ./setup_security.sh
+   
+   # Windows
+   setup_security.bat
+   ```
+   This will configure git hooks to prevent accidental API key commits.
+
 3. **Set up API keys** (choose one method):
 
    **Method 1: Configuration File (Recommended)**
@@ -51,11 +62,15 @@ DeepEcho is a comprehensive real-time voice transcription and AI assistant syste
    export OPENAI_API_KEY="sk-your-key-here"
    ```
 
-   **Method 3: Legacy keys.py**
-   ```python
-   # Create keys.py file
-   OPENAI_API_KEY = "sk-your-key-here"
+   **Method 3: Legacy keys.py (Secure)**
+   ```bash
+   # Copy the template file
+   cp keys.example.py keys.py
+   # Edit keys.py and add your actual API keys
+   # Note: keys.py is in .gitignore and will NOT be committed to git
    ```
+   
+   ⚠️ **Security Note**: Never commit your actual API keys to version control. The `keys.py` file is automatically excluded from git commits. See [SECURITY.md](SECURITY.md) for detailed security guidelines.
 
 4. **Run DeepEcho:**
    ```bash

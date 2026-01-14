@@ -506,6 +506,10 @@ class AudioTranscriber:
             text: Transcribed text
         """
         try:
+            # Skip empty transcriptions
+            if not text or not text.strip():
+                return
+            
             current_date = datetime.now()
             formatted_date = current_date.strftime('%Y%m%d')
             

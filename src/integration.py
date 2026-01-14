@@ -307,8 +307,32 @@ class IntegratedDeepEchoApplication:
                 model = APIWhisperModel()
                 logger.info("Using API-based transcription model")
             else:
-                model = LocalWhisperModel()
-                logger.info("Using local Whisper transcription model")
+                # Get model configuration
+                model_name = "small"  # Default
+                model_path = None
+                
+                if self.config:
+                    # Check if a local model path is specified
+                    if hasattr(self.config.audio, 'whisper_model_path') and self.config.audio.whisper_model_path:
+                        model_path = self.config.audio.whisper_model_path
+                        # If path exists, use it directly
+                        if os.path.exists(model_path):
+                            model_name = model_path
+                            logger.info(f"Using local Whisper model file: {model_path}")
+                        else:
+                            logger.warning(f"Model path not found: {model_path}, falling back to model name")
+                            model_name = getattr(self.config.audio, 'whisper_model', 'small')
+                    elif hasattr(self.config.audio, 'whisper_model'):
+                        model_name = self.config.audio.whisper_model
+                        # Check if it's a path
+                        if os.path.exists(model_name):
+                            logger.info(f"Using local Whisper model file: {model_name}")
+                        else:
+                            logger.info(f"Using Whisper model: {model_name}")
+                
+                # Initialize local model with specified model name/path
+                model = LocalWhisperModel(model_name=model_name)
+                logger.info(f"Using local Whisper transcription model: {model_name}")
             
             # Initialize transcriber
             self.transcriber = AudioTranscriber(

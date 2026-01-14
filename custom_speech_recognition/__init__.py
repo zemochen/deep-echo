@@ -1474,7 +1474,7 @@ class Recognizer(AudioSource):
                 human_string = self.tflabels[node_id]
                 return human_string
 
-    def recognize_whisper(self, audio_data, model="base", show_dict=False, load_options=None, language=None, translate=False, **transcribe_options):
+    def recognize_whisper(self, audio_data, model="tiny.en", show_dict=False, load_options=None, language=None, translate=False, **transcribe_options):
         """
         Performs speech recognition on ``audio_data`` (an ``AudioData`` instance), using Whisper.
 

@@ -1,8 +1,34 @@
+# Python
 __pycache__/
-*.wav
-keys.py
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual Environment
 .venv/
+venv/
+ENV/
+env/
+
+# IDE
 /.idea
+.vscode/
+*.swp
+*.swo
+*~
+
+# Audio files
+*.wav
+
+# Security - API Keys and Secrets
+keys.py
+.env
+.env.local
+*.key
+*.pem
+secrets.json
+config.local.json
 # General
 .DS_Store
 __MACOSX/
