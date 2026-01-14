@@ -29,3 +29,32 @@ class AudioInterface(ABC):
         """
         pass
 
+
+class AudioSystemInterface(ABC):
+    """
+    Abstract base class for audio system implementations.
+    
+    This interface defines the methods that all audio system implementations
+    must provide for device management and system integration.
+    """
+    
+    @abstractmethod
+    def initialize_devices(self):
+        """Initialize audio devices for the system."""
+        pass
+    
+    @abstractmethod
+    def get_device_status(self):
+        """
+        Get the status of audio devices.
+        
+        Returns:
+            dict: Device status information
+        """
+        pass
+    
+    @abstractmethod
+    def cleanup(self):
+        """Clean up audio system resources."""
+        pass
+

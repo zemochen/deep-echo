@@ -81,6 +81,21 @@ class BaseRecorder:
         except Exception as e:
             logger.error(f"Failed to initialize BaseRecorder: {e}")
             raise AudioRecorderError(f"Recorder initialization failed: {e}")
+    
+    def configure(self, record_timeout: int = RECORD_TIMEOUT, 
+                  phrase_timeout: float = 3.05,
+                  energy_threshold: int = ENERGY_THRESHOLD) -> None:
+        """
+        Configure audio recording parameters.
+        
+        Args:
+            record_timeout: Recording timeout in seconds
+            phrase_timeout: Phrase timeout in seconds
+            energy_threshold: Energy threshold for voice detection
+        """
+        self.recorder.energy_threshold = energy_threshold
+        logger.debug(f"Configured recorder: timeout={record_timeout}, "
+                    f"phrase_timeout={phrase_timeout}, threshold={energy_threshold}")
 
     @retry_with_backoff(
         exceptions=(OSError, AudioRecorderError),

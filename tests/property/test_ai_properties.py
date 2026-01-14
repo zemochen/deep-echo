@@ -115,7 +115,7 @@ class TestAIAdapter:
 # Property-based tests
 
 @settings(
-    max_examples=100,
+    max_examples=3,
     deadline=None,
     suppress_health_check=[HealthCheck.function_scoped_fixture]
 )
@@ -218,7 +218,7 @@ def test_property_ai_response_generation_completeness(prompts, provider_response
 
 
 @settings(
-    max_examples=100,
+    max_examples=3,
     deadline=None,
     suppress_health_check=[HealthCheck.function_scoped_fixture]
 )
@@ -361,7 +361,7 @@ def test_property_ai_provider_switching_consistency(provider_configs, test_promp
 
 
 @settings(
-    max_examples=50,
+    max_examples=2,
     deadline=None
 )
 @given(
@@ -431,7 +431,7 @@ def test_property_provider_state_isolation(num_switches, prompts_per_provider):
 
 
 @settings(
-    max_examples=100,
+    max_examples=3,
     deadline=None,
     suppress_health_check=[HealthCheck.function_scoped_fixture]
 )

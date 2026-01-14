@@ -5,13 +5,117 @@ This module provides the main UI controller that manages the user interface,
 handles user interactions, and coordinates between different UI components.
 """
 
-import customtkinter as ctk
+# Optional import for testing compatibility
+try:
+    import customtkinter as ctk
+    CUSTOMTKINTER_AVAILABLE = True
+except ImportError:
+    ctk = None
+    CUSTOMTKINTER_AVAILABLE = False
+
 import threading
 import queue
 from typing import Optional, Callable, Tuple, List
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+# Mock classes for testing when customtkinter is not available
+if not CUSTOMTKINTER_AVAILABLE:
+    class MockCTk:
+        def __init__(self, *args, **kwargs):
+            pass
+        def mainloop(self):
+            pass
+        def title(self, *args, **kwargs):
+            pass
+        def geometry(self, *args, **kwargs):
+            pass
+        def protocol(self, *args, **kwargs):
+            pass
+        def configure(self, *args, **kwargs):
+            pass
+    
+    class MockCTkFrame:
+        def __init__(self, *args, **kwargs):
+            pass
+        def pack(self, *args, **kwargs):
+            pass
+        def grid(self, *args, **kwargs):
+            pass
+        def place(self, *args, **kwargs):
+            pass
+        def configure(self, *args, **kwargs):
+            pass
+    
+    class MockCTkLabel:
+        def __init__(self, *args, **kwargs):
+            pass
+        def pack(self, *args, **kwargs):
+            pass
+        def grid(self, *args, **kwargs):
+            pass
+        def configure(self, *args, **kwargs):
+            pass
+    
+    class MockCTkTextbox:
+        def __init__(self, *args, **kwargs):
+            pass
+        def insert(self, *args, **kwargs):
+            pass
+        def delete(self, *args, **kwargs):
+            pass
+        def get(self, *args, **kwargs):
+            return ""
+        def configure(self, *args, **kwargs):
+            pass
+        def pack(self, *args, **kwargs):
+            pass
+        def grid(self, *args, **kwargs):
+            pass
+    
+    class MockCTkButton:
+        def __init__(self, *args, **kwargs):
+            pass
+        def pack(self, *args, **kwargs):
+            pass
+        def grid(self, *args, **kwargs):
+            pass
+        def configure(self, *args, **kwargs):
+            pass
+    
+    class MockCTkSlider:
+        def __init__(self, *args, **kwargs):
+            pass
+        def pack(self, *args, **kwargs):
+            pass
+        def grid(self, *args, **kwargs):
+            pass
+        def get(self):
+            return 1.0
+        def set(self, *args, **kwargs):
+            pass
+        def configure(self, *args, **kwargs):
+            pass
+    
+    # Replace ctk classes with mock classes
+    if ctk is None:
+        class ctk:
+            CTk = MockCTk
+            CTkFrame = MockCTkFrame
+            CTkLabel = MockCTkLabel
+            CTkTextbox = MockCTkTextbox
+            CTkButton = MockCTkButton
+            CTkSlider = MockCTkSlider
+            
+            @staticmethod
+            def set_appearance_mode(*args, **kwargs):
+                pass
+            
+            @staticmethod
+            def set_default_color_theme(*args, **kwargs):
+                pass
 
 
 class UIController:

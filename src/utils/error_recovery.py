@@ -769,3 +769,160 @@ def _cleanup_log_files() -> None:
                 pass  # File may already be deleted
     except Exception as e:
         logger.warning(f"Error cleaning log files: {e}")
+
+
+class ErrorRecoveryManager:
+    """
+    Main error recovery manager that coordinates all recovery components.
+    
+    This class provides a unified interface for error recovery, health monitoring,
+    and resource management across the entire system.
+    """
+    
+    def __init__(self):
+        """Initialize the error recovery manager."""
+        self.health_monitor = SystemHealthMonitor()
+        self.error_tracker = ErrorTracker()
+        self.device_recovery = DeviceRecoveryManager()
+        self.resource_cleanup = ResourceCleanupManager()
+        
+        self.is_initialized = False
+        logger.info("Error recovery manager initialized")
+    
+    def initialize(self) -> None:
+        """Initialize all recovery components."""
+        if self.is_initialized:
+            logger.warning("Error recovery manager already initialized")
+            return
+        
+        # Start health monitoring
+        self.health_monitor.start_monitoring()
+        
+        # Register default cleanup handlers
+        self.resource_cleanup.register_cleanup_handler(_cleanup_temp_files)
+        self.resource_cleanup.register_cleanup_handler(_cleanup_log_files)
+        
+        self.is_initialized = True
+        logger.info("Error recovery manager fully initialized")
+    
+    def shutdown(self) -> None:
+        """Shutdown all recovery components."""
+        logger.info("Shutting down error recovery manager")
+        
+        # Stop health monitoring
+        self.health_monitor.stop_monitoring()
+        
+        # Perform final cleanup
+        self.resource_cleanup.perform_cleanup(force=True)
+        
+        self.is_initialized = False
+        logger.info("Error recovery manager shutdown complete")
+    
+    def handle_audio_error(self, error: Exception) -> bool:
+        """
+        Handle audio-related errors.
+        
+        Args:
+            error: Audio error that occurred
+            
+        Returns:
+            True if error was handled successfully
+        """
+        event = self.error_tracker.record_error(error, "audio", "error")
+        logger.error(f"Audio error: {error}")
+        
+        # Attempt device recovery if it's a device error
+        if isinstance(error, AudioDeviceError):
+            success = self.device_recovery.attempt_device_recovery("audio_device", error)
+            self.error_tracker.record_recovery(event, success, 0.0)
+            return success
+        
+        return False
+    
+    def handle_transcription_error(self, error: Exception) -> bool:
+        """
+        Handle transcription-related errors.
+        
+        Args:
+            error: Transcription error that occurred
+            
+        Returns:
+            True if error was handled successfully
+        """
+        event = self.error_tracker.record_error(error, "transcription", "error")
+        logger.error(f"Transcription error: {error}")
+        
+        # For transcription errors, we might want to restart the transcription service
+        # This is a placeholder for actual recovery logic
+        return False
+    
+    def handle_ai_error(self, error: Exception) -> bool:
+        """
+        Handle AI-related errors.
+        
+        Args:
+            error: AI error that occurred
+            
+        Returns:
+            True if error was handled successfully
+        """
+        event = self.error_tracker.record_error(error, "ai", "error")
+        logger.error(f"AI error: {error}")
+        
+        # For AI errors, we might want to switch providers or retry
+        # This is a placeholder for actual recovery logic
+        return False
+    
+    def handle_thread_failure(self, dead_threads: List[str]) -> None:
+        """
+        Handle thread failures.
+        
+        Args:
+            dead_threads: List of dead thread names
+        """
+        for thread_name in dead_threads:
+            error = RuntimeError(f"Thread {thread_name} died unexpectedly")
+            self.error_tracker.record_error(error, "threading", "critical")
+            logger.critical(f"Thread failure detected: {thread_name}")
+    
+    def get_error_history(self) -> List[ErrorEvent]:
+        """
+        Get error history.
+        
+        Returns:
+            List of error events
+        """
+        return self.error_tracker.error_events
+    
+    def get_system_health(self) -> Dict[str, Any]:
+        """
+        Get comprehensive system health information.
+        
+        Returns:
+            Dictionary with system health data
+        """
+        return {
+            "health_status": self.health_monitor.get_health_status().value,
+            "current_metrics": self.health_monitor.get_current_metrics(),
+            "error_statistics": self.error_tracker.get_error_statistics(),
+            "recovery_status": self.device_recovery.get_recovery_status(),
+            "resource_usage": self.resource_cleanup.get_resource_usage()
+        }
+    
+    def perform_maintenance(self) -> Dict[str, Any]:
+        """
+        Perform system maintenance tasks.
+        
+        Returns:
+            Dictionary with maintenance results
+        """
+        logger.info("Performing system maintenance")
+        
+        results = {
+            "cleanup_results": self.resource_cleanup.perform_cleanup(),
+            "error_stats": self.error_tracker.get_error_statistics(),
+            "health_status": self.health_monitor.get_health_status().value
+        }
+        
+        logger.info("System maintenance completed")
+        return results

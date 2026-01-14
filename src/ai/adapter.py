@@ -280,3 +280,26 @@ class AIAdapter:
             "provider_history": self.get_provider_history(),
             "is_valid": self.validate_current_provider()
         }
+    
+    def cleanup(self) -> None:
+        """
+        Clean up AI adapter resources.
+        
+        This method performs cleanup operations for the AI adapter,
+        such as clearing provider history and resetting state.
+        """
+        try:
+            # Clear provider history
+            self._provider_history.clear()
+            
+            # Log cleanup
+            if self._current_provider:
+                logger.info(f"Cleaning up AI adapter with provider: {self.get_current_provider()}")
+            else:
+                logger.info("Cleaning up AI adapter (no active provider)")
+            
+            # Note: We don't set _current_provider to None to allow graceful shutdown
+            # The provider itself doesn't need cleanup as it's stateless
+            
+        except Exception as e:
+            logger.error(f"Error during AI adapter cleanup: {e}")

@@ -1,128 +1,237 @@
 
-# 🎧 DeepEcho
+# 🎧 DeepEcho - Real-time Voice AI Assistant
 
-DeepEcho is a live transcription tool that uses OpenAI's GPT-3 model to provide real-time transcription and response suggestions. It is designed to assist users in transcribing conversations, meetings, lectures, and other spoken content. DeepEcho can be used to generate accurate transcriptions of spoken content, which can be helpful for note-taking, accessibility, and content creation purposes.
+DeepEcho is a comprehensive real-time voice transcription and AI assistant system that supports multiple AI providers. It captures both microphone and speaker audio, provides live transcription, and generates intelligent response suggestions using various AI models including DeepSeek, OpenAI GPT, Claude, Grok, and more.
 
-## 📖 Demo
+## ✨ Key Features
 
-TBC
+- **🎤 Real-time Audio Capture**: Simultaneous microphone and speaker audio recording
+- **📝 Live Transcription**: Real-time speech-to-text with local and API modes
+- **🤖 Multi-AI Provider Support**: DeepSeek, OpenAI, Claude, Grok, Volcano Engine, and GLM
+- **🎨 Modern UI**: New integrated interface with AI provider selection
+- **⚙️ Flexible Configuration**: JSON-based configuration with multiple presets
+- **🔧 Cross-platform**: Windows and macOS support
+- **📊 System Monitoring**: Built-in diagnostics and resource optimization
+- **🛡️ Error Recovery**: Comprehensive error handling and retry mechanisms
 
-## 🚀 Getting Started
-
-Follow these steps to set up and run DeepEcho on your local machine.
+## 🚀 Quick Start
 
 ### 📋 Prerequisites
 
 - Python >=3.8.0
-- An OpenAI API key that can access OpenAI API (set up a paid account OpenAI account)
-- Windows OS / MacOS
-- FFmpeg 
-
-If FFmpeg is not installed in your system, you can follow the steps below to install it.
-
-#### Windows
-
-First, you need to install Chocolatey, a package manager for Windows. Open your PowerShell as Administrator and run the following command:
-```
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-```
-Once Chocolatey is installed, you can install FFmpeg by running the following command in your PowerShell:
-```
-choco install ffmpeg
-```
-Please ensure that you run these commands in a PowerShell window with administrator privileges. If you face any issues during the installation, you can visit the official Chocolatey and FFmpeg websites for troubleshooting.
-#### MacOS
-
-1. Install Homebrew
-```shell
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-```
-2. Install dependency
-
-```shell
-brew install ffmpeg
-brew install portaudio
-brew install python-tk
-```
-3. Install BlackHole
-
-```shell
-brew install blackhole-2ch
-```
-**Configuration BlackHole:**
-
-* Open `Audio MIDI Setup`（ macOS in"Application > Others"）。
-* Setup Multi-Output Device
-* In Audio MIDI Setup → Audio Devices right-click on the newly created Multi-Output and select "Use This Device For Sound Output"
-* Open digital audio workstation (DAW) such as GarageBand and set input device to "BlackHole"
-* Set track to input from channel 1-2
-*Play audio from another application and monitor or record in your DAW
-
-> For more BlackHole see:[BlackHole github](https://github.com/ExistentialAudio/BlackHole)
-
+- FFmpeg (for audio processing)
+- At least one AI provider API key (see [API Setup Guide](API_SETUP.md))
+- Windows OS / macOS
 
 ### 🔧 Installation
 
-1. Clone the repository:
-
-   ```
+1. **Clone the repository:**
+   ```bash
    git clone https://github.com/zemochen/deep_echo.git
-   ```
-
-2. Navigate to the `deep_echo` folder:
-
-   ```
    cd deep_echo
    ```
 
-3. Install the required packages:
-
-   ```
+2. **Install dependencies:**
+   ```bash
    pip install -r requirements.txt
    ```
-   
-4. Create a `keys.py` file in the DeepEcho directory and add your OpenAI API key:
 
-   - Option 1: You can utilize a command on your command prompt. Run the following command, ensuring to replace "API KEY" with your actual OpenAI API key:
+3. **Set up API keys** (choose one method):
 
-      ```
-      python -c "with open('keys.py', 'w', encoding='utf-8') as f: f.write('OPENAI_API_KEY=\"API KEY\"')"
-      ```
+   **Method 1: Configuration File (Recommended)**
+   ```bash
+   cp config.example.json config.json
+   # Edit config.json and add your API key
+   ```
 
-   - Option 2: You can create the keys.py file manually. Open uphypothesis your text editor of choice and enter the following content:
-   
-      ```
-      OPENAI_API_KEY="API KEY"
-      ```
-      Replace "API KEY" with your actual OpenAI API key. Save this file as keys.py within the DeepEcho directory.
+   **Method 2: Environment Variable**
+   ```bash
+   export DEEPSEEK_API_KEY="sk-your-key-here"
+   # or
+   export OPENAI_API_KEY="sk-your-key-here"
+   ```
 
-### 🎬 Running DeepEcho
+   **Method 3: Legacy keys.py**
+   ```python
+   # Create keys.py file
+   OPENAI_API_KEY = "sk-your-key-here"
+   ```
 
-Run the main script:
+4. **Run DeepEcho:**
+   ```bash
+   python main.py
+   ```
 
-```
+## 🎯 Usage Modes
+
+### Default Mode (Integrated Application)
+```bash
 python main.py
 ```
+- Uses new integrated architecture
+- Automatic AI provider detection
+- Modern UI with provider selection
+- Comprehensive error handling
 
-For a more better and faster version that also works with most languages, use:
-
-```
+### API Transcription Mode
+```bash
 python main.py --api
 ```
+- Uses OpenAI Whisper API for transcription
+- Higher accuracy and multi-language support
+- Requires internet connection
 
-Upon initiation, DeepEcho will begin transcribing your microphone input and speaker output in real-time, generating a suggested response based on the conversation. Please note that it might take a few seconds for the system to warm up before the transcription becomes real-time.
+### Legacy Mode
+```bash
+python main.py --legacy
+```
+- Uses original application architecture
+- Backward compatibility mode
+- Legacy UI interface
 
-The --api flag will use the whisper api for transcriptions. This significantly enhances transcription speed and accuracy, and it works in most languages (rather than just English without the flag). It's expected to become the default option in future releases. However, keep in mind that using the Whisper API will consume more OpenAI credits than using the local model. This increased cost is attributed to the advanced features and capabilities that the Whisper API provides. Despite the additional expense, the substantial improvements in speed and transcription accuracy may make it a worthwhile investment for your use case.
+### Verbose Logging
+```bash
+python main.py --verbose
+```
+- Detailed logging for troubleshooting
+- System diagnostics information
 
-### ⚠️ Limitations
+## 🤖 Supported AI Providers
 
-While DeepEcho provides real-time transcription and response suggestions, there are several known limitations to its functionality that you should be aware of:
+| Provider | Models | Setup Guide |
+|----------|--------|-------------|
+| **DeepSeek** | deepseek-chat, deepseek-coder | [DeepSeek Setup](API_SETUP.md#1-deepseek-recommended) |
+| **OpenAI** | gpt-3.5-turbo, gpt-4, gpt-4o | [OpenAI Setup](API_SETUP.md#2-openai) |
+| **Claude** | claude-3-haiku, claude-3-sonnet, claude-3-opus | [Claude Setup](API_SETUP.md#3-anthropic-claude) |
+| **Grok** | grok-beta, grok-2 | [Grok Setup](API_SETUP.md#4-xai-grok) |
+| **Volcano Engine** | doubao-pro, doubao-lite | [Volcano Setup](API_SETUP.md#5-bytedance-volcano-engine) |
+| **GLM** | qwen-turbo, qwen-plus, qwen-max | [GLM Setup](API_SETUP.md#6-alibaba-cloud) |
 
-**Default Mic and Speaker:** DeepEcho is currently configured to listen only to the default microphone and speaker set in your system. It will not detect sound from other devices or systems. If you wish to use a different mic or speaker, you will need to set it as your default device in your system settings.
+## ⚙️ Configuration
 
-**Whisper Model**: If the --api flag is not used, we utilize the 'tiny' version of the Whisper ASR model, due to its low resource consumption and fast response times. However, this model may not be as accurate as the larger models in transcribing certain types of speech, including accents or uncommon words.
+### Configuration Files
 
-**Language**: If you are not using the --api flag the Whisper model used in DeepEcho is set to English. As a result, it may not accurately transcribe non-English languages or dialects. We are actively working to add multi-language support to future versions of the program.
+DeepEcho supports multiple configuration presets:
+
+- `config.example.json` - Template configuration
+- `config.deepseek.json` - DeepSeek optimized settings
+- `config.openai.json` - OpenAI optimized settings
+
+### Configuration Options
+
+```json
+{
+  "audio": {
+    "use_api_mode": true,          // Use API vs local transcription
+    "record_timeout": 3,           // Recording timeout (seconds)
+    "energy_threshold": 1000       // Audio sensitivity
+  },
+  "ai_provider": {
+    "provider_type": "deepseek",   // AI provider to use
+    "api_key": "your-key-here",    // API key
+    "model": "deepseek-chat",      // Model name
+    "response_interval": 5         // Response update interval
+  },
+  "ui": {
+    "use_new_ui": true,           // Use new integrated UI
+    "theme": "dark",              // UI theme
+    "window_width": 1200          // Window dimensions
+  }
+}
+```
+
+## 🖥️ System Requirements
+
+### Windows
+- Windows 10/11
+- Python 3.8+
+- PyAudioWPatch (auto-installed)
+- FFmpeg
+
+### macOS
+- macOS 10.14+
+- Python 3.8+
+- BlackHole virtual audio device
+- FFmpeg, PortAudio
+
+**macOS Setup:**
+```bash
+brew install ffmpeg portaudio python-tk blackhole-2ch
+```
+
+## 🔧 Advanced Features
+
+### System Monitoring
+- Real-time resource usage tracking
+- Thread health monitoring
+- Queue size optimization
+- Memory usage alerts
+
+### Error Recovery
+- Automatic retry with exponential backoff
+- Graceful degradation on failures
+- Component health checks
+- Network failure handling
+
+### Performance Optimization
+- Multi-threaded architecture
+- Resource usage optimization
+- Queue management
+- Memory leak prevention
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**"FFmpeg not found"**
+```bash
+# Windows (with Chocolatey)
+choco install ffmpeg
+
+# macOS
+brew install ffmpeg
+```
+
+**"No AI provider configured"**
+- Check your API key in configuration
+- Verify the key format and permissions
+- See [API Setup Guide](API_SETUP.md)
+
+**Audio device issues**
+- Ensure default audio devices are properly set
+- On macOS, configure BlackHole for speaker capture
+- Check system audio permissions
+
+**High memory usage**
+- Enable resource optimization in config
+- Reduce queue size limits
+- Use local transcription mode
+
+### Getting Help
+
+1. Run with verbose logging: `python main.py --verbose`
+2. Check the system diagnostics output
+3. Review configuration file syntax
+4. Consult the [API Setup Guide](API_SETUP.md)
+
+## 📊 Performance Tips
+
+- **For best accuracy**: Use `--api` mode with internet connection
+- **For lowest latency**: Use local mode with tiny Whisper model
+- **For cost efficiency**: Use DeepSeek or Claude Haiku
+- **For best quality**: Use OpenAI GPT-4 or Claude Opus
+
+## 🔄 Migration from Legacy Version
+
+If upgrading from an older version:
+
+1. **Backup your keys.py file**
+2. **Create new configuration file**:
+   ```bash
+   cp config.example.json config.json
+   ```
+3. **Update your API keys in the new format**
+4. **Test with**: `python main.py --legacy` (fallback mode)
 
 ## 📖 License
 
@@ -130,7 +239,22 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🤝 Contributing
 
-Contributions are welcome! Feel free to open issues or submit pull requests to improve DeepEcho.
+Contributions are welcome! Please follow these guidelines:
 
-### Code Style
-For code style, we follow the [PEP 8](https://www.python.org/dev/peps/pep-0008/) guidelines. We recommend using a linter like [flake8](https://flake8.pycqa.org/en/latest/) to ensure your code adheres to these guidelines.
+1. **Code Style**: Follow PEP 8 guidelines
+2. **Testing**: Add tests for new features
+3. **Documentation**: Update documentation for changes
+4. **Commits**: Use clear, descriptive commit messages
+
+### Development Setup
+```bash
+pip install -r requirements-dev.txt
+pytest tests/
+```
+
+## 🙏 Acknowledgments
+
+- OpenAI for Whisper and GPT models
+- Anthropic for Claude models
+- DeepSeek for accessible AI APIs
+- All contributors and users of DeepEcho

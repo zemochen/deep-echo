@@ -68,3 +68,13 @@ class ConfigurationError(DeepEchoError):
 class UIError(DeepEchoError):
     """Raised when UI operations fail"""
     pass
+
+
+class AudioSystemError(AudioError):
+    """Raised when audio system operations fail"""
+    pass
+
+
+class AISystemError(AIProviderError):
+    """Raised when AI system operations fail"""
+    pass

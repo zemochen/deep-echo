@@ -5,11 +5,51 @@ This module provides reusable UI components and widgets used throughout
 the application interface.
 """
 
-import customtkinter as ctk
+# Optional import for testing compatibility
+try:
+    import customtkinter as ctk
+    CUSTOMTKINTER_AVAILABLE = True
+except ImportError:
+    ctk = None
+    CUSTOMTKINTER_AVAILABLE = False
+
 from typing import List, Optional, Callable, Dict, Any
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+# Mock classes for testing when customtkinter is not available
+if not CUSTOMTKINTER_AVAILABLE:
+    class MockCTkFrame:
+        def __init__(self, *args, **kwargs):
+            pass
+        def pack(self, *args, **kwargs):
+            pass
+        def grid(self, *args, **kwargs):
+            pass
+        def place(self, *args, **kwargs):
+            pass
+        def configure(self, *args, **kwargs):
+            pass
+    
+    class MockCTkTextbox:
+        def __init__(self, *args, **kwargs):
+            pass
+        def insert(self, *args, **kwargs):
+            pass
+        def delete(self, *args, **kwargs):
+            pass
+        def get(self, *args, **kwargs):
+            return ""
+        def configure(self, *args, **kwargs):
+            pass
+    
+    # Replace ctk classes with mock classes
+    if ctk is None:
+        class ctk:
+            CTkFrame = MockCTkFrame
+            CTkTextbox = MockCTkTextbox
 
 
 class AIProviderSelector(ctk.CTkFrame):

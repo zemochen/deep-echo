@@ -11,7 +11,13 @@ import time
 import sys
 from typing import Optional
 
-import customtkinter as ctk
+# Optional import for testing compatibility
+try:
+    import customtkinter as ctk
+    CUSTOMTKINTER_AVAILABLE = True
+except ImportError:
+    ctk = None
+    CUSTOMTKINTER_AVAILABLE = False
 
 from src.ui.controller import UIController
 from src.ui.components import AIProviderSelector, StatusIndicator
@@ -87,10 +93,9 @@ class MainWindow:
             return
         
         # Set current provider in UI
-        current_provider = self.ai_adapter.get_current_provider()
-        if current_provider:
-            provider_name = current_provider.get_provider_name()
-            model_name = current_provider.get_model_name()
+        provider_name = self.ai_adapter.get_current_provider()
+        if provider_name:
+            model_name = self.ai_adapter.get_current_model()
             self.ui_controller.set_current_provider(provider_name, model_name)
             
             # Update available models for current provider
@@ -166,9 +171,8 @@ class MainWindow:
             return
         
         try:
-            current_provider = self.ai_adapter.get_current_provider()
-            if current_provider:
-                provider_name = current_provider.get_provider_name()
+            provider_name = self.ai_adapter.get_current_provider()
+            if provider_name:
                 self.ui_controller.update_status(f"Switching to {model}...")
                 
                 # For now, just update the display
@@ -197,10 +201,9 @@ class MainWindow:
     def _update_provider_display(self):
         """Update the provider information display."""
         if self.ai_adapter:
-            current_provider = self.ai_adapter.get_current_provider()
-            if current_provider:
-                provider_name = current_provider.get_provider_name()
-                model_name = current_provider.get_model_name()
+            provider_name = self.ai_adapter.get_current_provider()
+            model_name = self.ai_adapter.get_current_model()
+            if provider_name and model_name:
                 self.ui_controller.update_provider_info()
     
     def start_ui_updates(self):
@@ -224,6 +227,10 @@ class MainWindow:
     
     def run(self):
         """Run the main window."""
+        if not CUSTOMTKINTER_AVAILABLE:
+            logger.warning("CustomTkinter not available, cannot run UI")
+            return
+            
         if not self.ui_controller.root:
             raise RuntimeError("Main window not initialized")
         
@@ -265,3 +272,10 @@ def create_main_window() -> MainWindow:
         MainWindow: New main window instance
     """
     return MainWindow()
+    
+    def cleanup(self):
+        """Clean up the main window resources."""
+        logger.info("Cleaning up main window...")
+        self.stop_ui_updates()
+        if hasattr(self.ui_controller, 'cleanup'):
+            self.ui_controller.cleanup()

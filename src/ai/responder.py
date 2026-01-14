@@ -13,6 +13,8 @@ import threading
 
 from .adapter import AIAdapter
 from .providers.base_provider import AIProviderError
+from src.utils.threading import get_thread_manager, ThreadPriority, ManagedThread
+from src.utils.resource_optimizer import get_resource_optimizer
 
 logger = logging.getLogger(__name__)
 
@@ -106,9 +108,16 @@ class GPTResponder:
         self.retry_delay = retry_delay
         self.prompt_template = prompt_template
         
-        # Thread control
+        # Thread control with managed threading
         self._stop_event = threading.Event()
-        self._response_thread: Optional[threading.Thread] = None
+        self._response_thread: Optional[ManagedThread] = None
+        self._thread_manager = get_thread_manager()
+        self._resource_optimizer = get_resource_optimizer()
+        
+        # Register memory optimization callback
+        self._resource_optimizer.memory_optimizer.register_optimization_callback(
+            self._optimize_memory_usage
+        )
         
         logger.info(f"GPT Responder initialized with {ai_adapter.get_current_provider()} provider")
     
@@ -124,21 +133,33 @@ class GPTResponder:
             return
         
         self._stop_event.clear()
-        self._response_thread = threading.Thread(
+        
+        # Create managed thread for response generation
+        self._response_thread = self._thread_manager.create_thread(
+            name=f"GPTResponder_{id(self)}",
             target=self._response_loop,
             args=(transcriber,),
             daemon=True,
-            name="GPTResponder"
+            priority=ThreadPriority.NORMAL,  # Normal priority for AI responses
+            auto_start=True
         )
-        self._response_thread.start()
-        logger.info("Started GPT responder thread")
+        
+        if self._response_thread:
+            logger.info("Started GPT responder with managed thread")
+        else:
+            logger.error("Failed to create GPT responder thread")
     
     def stop_responding(self) -> None:
         """Stop the response generation thread."""
-        if self._response_thread and self._response_thread.is_alive():
+        if self._response_thread:
             self._stop_event.set()
-            self._response_thread.join(timeout=5.0)
-            logger.info("Stopped GPT responder thread")
+            success = self._response_thread.stop(timeout=3.0)
+            if success:
+                # Remove thread from manager
+                self._thread_manager.remove_thread(self._response_thread.name)
+                logger.info("Stopped GPT responder thread")
+            else:
+                logger.warning("GPT responder thread did not stop gracefully")
     
     def _response_loop(self, transcriber) -> None:
         """
@@ -151,6 +172,10 @@ class GPTResponder:
         
         while not self._stop_event.is_set():
             try:
+                # Check if thread should stop (with safety check)
+                if self._response_thread and self._response_thread.should_stop():
+                    break
+                
                 if transcriber.transcript_changed_event.is_set():
                     start_time = time.time()
                     
@@ -163,6 +188,9 @@ class GPTResponder:
                     response = ''
                     if speaker_string:
                         response = self._generate_response_with_retry(transcript_string)
+                        # Update thread metrics (with safety check)
+                        if self._response_thread:
+                            self._response_thread.increment_processed_items()
                     
                     # Update response if generation was successful
                     if response:
@@ -182,6 +210,9 @@ class GPTResponder:
                     
             except Exception as e:
                 logger.error(f"Error in response loop: {e}")
+                # Update error count (with safety check)
+                if self._response_thread:
+                    self._response_thread.increment_error_count()
                 self._stop_event.wait(1.0)  # Wait before retrying
     
     def _generate_response_with_retry(self, transcript: str) -> str:
@@ -299,3 +330,24 @@ class GPTResponder:
             "max_retries": self.max_retries,
             "retry_delay": self.retry_delay
         }
+    
+    def _optimize_memory_usage(self) -> float:
+        """
+        Optimize memory usage by clearing old response data.
+        
+        Returns:
+            Estimated memory freed in MB
+        """
+        # Clear response if it's very long (keep only last 1000 characters)
+        initial_length = len(self.response)
+        if initial_length > 1000:
+            self.response = self.response[-1000:]
+            chars_removed = initial_length - len(self.response)
+            
+            # Rough estimate: 1 byte per character
+            estimated_freed = chars_removed / (1024 * 1024)  # MB
+            
+            logger.debug(f"GPT Responder memory optimization freed ~{estimated_freed:.4f}MB")
+            return estimated_freed
+        
+        return 0.0

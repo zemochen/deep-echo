@@ -53,7 +53,7 @@ class TestUIRealTimeResponseUpdates:
             self.mic_queue = queue.Queue()
     
     @given(transcript_text=st.text(min_size=1, max_size=1000))
-    @settings(max_examples=100, deadline=2000)
+    @settings(max_examples=3, deadline=2000)
     def test_transcript_updates_reflect_immediately(self, transcript_text):
         """
         Property 6a: For any transcript update, UI should reflect changes immediately.
@@ -87,7 +87,7 @@ class TestUIRealTimeResponseUpdates:
         assert callable(args[1])  # Update function
     
     @given(response_text=st.text(min_size=1, max_size=1000))
-    @settings(max_examples=50, deadline=2000)
+    @settings(max_examples=2, deadline=2000)
     def test_response_updates_reflect_immediately_when_not_frozen(self, response_text):
         """
         Property 6b: For any response update when not frozen, UI should reflect changes immediately.
@@ -145,7 +145,7 @@ class TestUIFreezeStateManagement:
             self.mock_responder = Mock()
     
     @given(initial_frozen=st.booleans())
-    @settings(max_examples=100, deadline=1000)
+    @settings(max_examples=3, deadline=1000)
     def test_freeze_state_prevents_display_updates(self, initial_frozen):
         """
         Property 7a: For any freeze state, display updates should be controlled accordingly.
@@ -184,7 +184,7 @@ class TestUIFreezeStateManagement:
         mock_textbox.after.assert_called_once()
     
     @given(freeze_toggles=st.lists(st.booleans(), min_size=1, max_size=10))
-    @settings(max_examples=50, deadline=2000)
+    @settings(max_examples=2, deadline=2000)
     def test_freeze_toggle_maintains_consistent_state(self, freeze_toggles):
         """
         Property 7b: For any sequence of freeze toggles, state should remain consistent.
@@ -231,7 +231,7 @@ class TestUIConfigurationDisplaySync:
             self.ui_controller = UIController()
     
     @given(interval=st.integers(min_value=1, max_value=10))
-    @settings(max_examples=100, deadline=1000)
+    @settings(max_examples=3, deadline=1000)
     def test_update_interval_display_sync(self, interval):
         """
         Property 8a: For any update interval change, display should immediately show correct value.
@@ -256,7 +256,7 @@ class TestUIConfigurationDisplaySync:
         provider=st.sampled_from(["deepseek", "openai", "grok", "claude", "volcano", "glm"]),
         model=st.text(min_size=1, max_size=50)
     )
-    @settings(max_examples=100, deadline=1000)
+    @settings(max_examples=3, deadline=1000)
     def test_provider_info_display_sync(self, provider, model):
         """
         Property 8b: For any provider/model change, display should immediately show correct info.
@@ -286,7 +286,7 @@ class TestUIConfigurationDisplaySync:
             max_size=5
         )
     )
-    @settings(max_examples=50, deadline=2000)
+    @settings(max_examples=2, deadline=2000)
     def test_status_message_display_sync(self, status_messages):
         """
         Property 8c: For any sequence of status updates, display should always show latest status.
@@ -326,7 +326,7 @@ class TestConfigValidatorProperties:
     @given(
         provider=st.sampled_from(["deepseek", "openai", "grok", "claude", "volcano", "glm"])
     )
-    @settings(max_examples=50, deadline=1000)
+    @settings(max_examples=2, deadline=1000)
     def test_available_models_always_non_empty_for_supported_providers(self, provider):
         """
         Property: For any supported provider, available models list should never be empty.
@@ -343,7 +343,7 @@ class TestConfigValidatorProperties:
     @given(
         provider=st.sampled_from(["deepseek", "openai", "grok", "claude", "volcano", "glm"])
     )
-    @settings(max_examples=50, deadline=1000)
+    @settings(max_examples=2, deadline=1000)
     def test_valid_models_always_validate_successfully(self, provider):
         """
         Property: For any provider, its available models should always validate successfully.

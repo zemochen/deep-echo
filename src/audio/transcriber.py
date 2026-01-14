@@ -22,6 +22,9 @@ from src.utils.logger import get_logger
 from src.utils.exceptions import AudioTranscriptionError
 from src.utils.retry import retry_with_backoff, RetryConfig
 from src.utils.error_recovery import error_tracker, resource_cleanup_manager
+from src.utils.threading import get_thread_manager, ThreadPriority, ManagedThread
+from src.utils.queue_manager import get_queue_manager, QueueType, ManagedQueue
+from src.utils.resource_optimizer import get_resource_optimizer
 from src.audio.models import BaseTranscriber, TranscriptionMode, LanguageDetectionResult
 
 # Constants
@@ -88,13 +91,52 @@ class AudioTranscriber:
         
         # Processing state
         self._is_running = False
-        self._processing_thread = None
+        self._processing_thread: Optional[ManagedThread] = None
+        
+        # Get thread and queue managers
+        self._thread_manager = get_thread_manager()
+        self._queue_manager = get_queue_manager()
+        self._resource_optimizer = get_resource_optimizer()
+        
+        # Create managed queues for internal processing
+        self._internal_mic_queue = self._queue_manager.create_queue(
+            name=f"transcriber_mic_{id(self)}",
+            maxsize=500,
+            queue_type=QueueType.FIFO,
+            auto_cleanup=True
+        )
+        self._internal_speaker_queue = self._queue_manager.create_queue(
+            name=f"transcriber_speaker_{id(self)}",
+            maxsize=500,
+            queue_type=QueueType.FIFO,
+            auto_cleanup=True
+        )
         
         # Register cleanup handlers for resource management
         resource_cleanup_manager.register_cleanup_handler(self._cleanup_temp_files)
         resource_cleanup_manager.register_resource_monitor("transcriber_queues", self._get_queue_metrics)
         
-        logger.info("AudioTranscriber initialized successfully")
+        # Register memory optimization callback
+        self._resource_optimizer.memory_optimizer.register_optimization_callback(
+            self._optimize_memory_usage
+        )
+        
+        logger.info("AudioTranscriber initialized successfully with enhanced threading")
+    
+    def configure(self, max_phrases: int = MAX_PHRASES, 
+                  processing_interval: float = PROCESSING_INTERVAL) -> None:
+        """
+        Configure transcription parameters.
+        
+        Args:
+            max_phrases: Maximum number of phrases to keep in history
+            processing_interval: Processing interval in seconds
+        """
+        # Store configuration (can be used in processing logic if needed)
+        self._max_phrases = max_phrases
+        self._processing_interval = processing_interval
+        logger.debug(f"Configured transcriber: max_phrases={max_phrases}, "
+                    f"processing_interval={processing_interval}")
     
     def start_transcription(self, speaker_queue: queue.Queue, mic_queue: queue.Queue) -> None:
         """
@@ -109,20 +151,48 @@ class AudioTranscriber:
             return
             
         self._is_running = True
-        self._processing_thread = threading.Thread(
+        
+        # Create managed thread for transcription processing
+        self._processing_thread = self._thread_manager.create_thread(
+            name=f"AudioTranscriber_{id(self)}",
             target=self._transcribe_audio_queue,
             args=(speaker_queue, mic_queue),
             daemon=True,
-            name="AudioTranscriber"
+            priority=ThreadPriority.HIGH,  # High priority for real-time processing
+            auto_start=True
         )
-        self._processing_thread.start()
-        logger.info("Audio transcription started")
+        
+        if self._processing_thread:
+            logger.info("Audio transcription started with managed thread")
+        else:
+            logger.error("Failed to create transcription thread")
+            self._is_running = False
     
     def stop_transcription(self) -> None:
         """Stop the transcription processing."""
         self._is_running = False
-        if self._processing_thread and self._processing_thread.is_alive():
-            self._processing_thread.join(timeout=1.0)
+        if self._processing_thread:
+            # Increase timeout to 5 seconds for graceful shutdown
+            success = self._processing_thread.stop(timeout=5.0)
+            if success:
+                # Remove thread from manager
+                self._thread_manager.remove_thread(self._processing_thread.name)
+            else:
+                logger.warning("Transcription thread did not stop gracefully")
+        
+        # Clean up managed queues (with error handling)
+        if self._internal_mic_queue:
+            try:
+                self._queue_manager.remove_queue(self._internal_mic_queue.name)
+            except Exception as e:
+                logger.debug(f"Mic queue cleanup: {e}")
+        
+        if self._internal_speaker_queue:
+            try:
+                self._queue_manager.remove_queue(self._internal_speaker_queue.name)
+            except Exception as e:
+                logger.debug(f"Speaker queue cleanup: {e}")
+        
         logger.info("Audio transcription stopped")
     
     def _transcribe_audio_queue(self, speaker_queue: queue.Queue, mic_queue: queue.Queue) -> None:
@@ -135,7 +205,7 @@ class AudioTranscriber:
         """
         logger.info("Starting audio transcription processing loop")
         
-        while self._is_running:
+        while self._is_running and not self._processing_thread.should_stop():
             try:
                 pending_transcriptions = []
                 
@@ -145,6 +215,8 @@ class AudioTranscriber:
                     transcription = self._process_audio_source("You", mic_data)
                     if transcription:
                         pending_transcriptions.append(transcription)
+                        # Update thread metrics
+                        self._processing_thread.increment_processed_items()
                 
                 # Process speaker data
                 speaker_data = self._drain_queue(speaker_queue)
@@ -152,6 +224,8 @@ class AudioTranscriber:
                     transcription = self._process_audio_source("Speaker", speaker_data)
                     if transcription:
                         pending_transcriptions.append(transcription)
+                        # Update thread metrics
+                        self._processing_thread.increment_processed_items()
                 
                 # Update transcripts in chronological order
                 if pending_transcriptions:
@@ -166,6 +240,7 @@ class AudioTranscriber:
                 
             except Exception as e:
                 logger.error(f"Error in transcription loop: {e}")
+                self._processing_thread.increment_error_count()
                 # Continue processing despite errors
     
     def _drain_queue(self, audio_queue: queue.Queue) -> List[Tuple[bytes, datetime]]:
@@ -573,7 +648,7 @@ class AudioTranscriber:
             Dictionary with queue metrics
         """
         with self._lock:
-            return {
+            metrics = {
                 "transcript_entries_you": len(self.transcript_data["You"]),
                 "transcript_entries_speaker": len(self.transcript_data["Speaker"]),
                 "is_running": self._is_running,
@@ -583,6 +658,56 @@ class AudioTranscriber:
                 ),
                 "audio_sources_count": len(self.audio_sources)
             }
+            
+            # Add managed queue metrics if available
+            if self._internal_mic_queue:
+                metrics["internal_mic_queue_size"] = self._internal_mic_queue.size()
+            if self._internal_speaker_queue:
+                metrics["internal_speaker_queue_size"] = self._internal_speaker_queue.size()
+            
+            return metrics
+    
+    def _optimize_memory_usage(self) -> float:
+        """
+        Optimize memory usage by cleaning up old transcript data.
+        
+        Returns:
+            Estimated memory freed in MB
+        """
+        with self._lock:
+            initial_entries = (len(self.transcript_data["You"]) + 
+                             len(self.transcript_data["Speaker"]))
+            
+            # Keep only recent transcript entries (last 50 per source)
+            max_entries = 50
+            
+            if len(self.transcript_data["You"]) > max_entries:
+                removed = len(self.transcript_data["You"]) - max_entries
+                self.transcript_data["You"] = self.transcript_data["You"][:max_entries]
+                logger.debug(f"Removed {removed} old microphone transcript entries")
+            
+            if len(self.transcript_data["Speaker"]) > max_entries:
+                removed = len(self.transcript_data["Speaker"]) - max_entries
+                self.transcript_data["Speaker"] = self.transcript_data["Speaker"][:max_entries]
+                logger.debug(f"Removed {removed} old speaker transcript entries")
+            
+            # Reset audio source buffers if they're too large
+            for source_name, source_info in self.audio_sources.items():
+                if len(source_info["last_sample"]) > 1024 * 1024:  # 1MB
+                    source_info["last_sample"] = bytes()
+                    logger.debug(f"Reset large audio buffer for {source_name}")
+            
+            final_entries = (len(self.transcript_data["You"]) + 
+                           len(self.transcript_data["Speaker"]))
+            
+            # Rough estimate: 100 bytes per transcript entry
+            entries_removed = initial_entries - final_entries
+            estimated_freed = (entries_removed * 100) / (1024 * 1024)  # MB
+            
+            if entries_removed > 0:
+                logger.info(f"Transcriber memory optimization freed ~{estimated_freed:.2f}MB")
+            
+            return estimated_freed
 
 
 # Legacy compatibility function

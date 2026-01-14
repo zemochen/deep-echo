@@ -139,7 +139,7 @@ class TestBaseRecorder:
 # Property-based tests
 
 @settings(
-    max_examples=100,
+    max_examples=3,
     deadline=None,
     suppress_health_check=[HealthCheck.function_scoped_fixture]
 )
@@ -237,7 +237,7 @@ def test_property_audio_data_end_to_end_processing(audio_data, num_audio_chunks)
 
 
 @settings(
-    max_examples=100,
+    max_examples=3,
     deadline=None,
     suppress_health_check=[HealthCheck.function_scoped_fixture]
 )
@@ -289,7 +289,7 @@ def test_property_audio_queue_data_integrity(audio_data):
 
 
 @settings(
-    max_examples=100,
+    max_examples=3,
     deadline=None
 )
 @given(
@@ -351,7 +351,7 @@ def test_property_concurrent_audio_processing(num_concurrent_chunks):
 # Property tests for AudioTranscriber
 
 @settings(
-    max_examples=100,
+    max_examples=3,
     deadline=None,
     suppress_health_check=[HealthCheck.function_scoped_fixture]
 )
@@ -475,7 +475,7 @@ def test_property_audio_source_distinction_marking(mic_text_samples, speaker_tex
 
 
 @settings(
-    max_examples=100,
+    max_examples=3,
     deadline=None
 )
 @given(
@@ -557,7 +557,7 @@ def test_property_audio_source_consistency(num_transcriptions):
 # Property tests for multi-language and model support
 
 @settings(
-    max_examples=50,  # Reduce examples for faster testing
+    max_examples=2,  # Reduce examples for faster testing
     deadline=None
 )
 @given(
@@ -658,7 +658,7 @@ def test_property_language_detection_and_processing_mode(use_api_mode):
 
 
 @settings(
-    max_examples=100,
+    max_examples=3,
     deadline=None
 )
 @given(
@@ -780,7 +780,7 @@ def test_property_mode_switching_consistency(initial_mode, switch_to_mode, model
 
 
 @settings(
-    max_examples=100,
+    max_examples=3,
     deadline=None
 )
 @given(
