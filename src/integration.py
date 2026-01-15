@@ -371,6 +371,13 @@ class IntegratedDeepEchoApplication:
         try:
             logger.info("Initializing comprehensive AI system...")
             
+            # Validate transcriber is initialized before starting AI system
+            if not self.transcriber:
+                raise AISystemError("Transcriber must be initialized before AI system")
+            
+            if not hasattr(self.transcriber, 'audio_sources'):
+                raise AISystemError("Transcriber missing audio_sources - initialization incomplete")
+            
             # Initialize AI adapter
             self.ai_adapter = AIAdapter()
             
@@ -566,8 +573,19 @@ class IntegratedDeepEchoApplication:
                     errors.append("Transcriber not properly initialized")
                 
                 # Check if transcriber has access to audio sources
-                if self.transcriber and not hasattr(self.transcriber, 'mic_source'):
+                if self.transcriber and not hasattr(self.transcriber, 'audio_sources'):
                     errors.append("Transcriber missing audio source references")
+                elif self.transcriber and self.transcriber.audio_sources:
+                    # Validate audio sources have required properties
+                    for source_name in ["You", "Speaker"]:
+                        if source_name not in self.transcriber.audio_sources:
+                            errors.append(f"Transcriber missing {source_name} audio source")
+                        else:
+                            source_info = self.transcriber.audio_sources[source_name]
+                            required_keys = ["sample_rate", "sample_width", "channels"]
+                            missing_keys = [k for k in required_keys if k not in source_info]
+                            if missing_keys:
+                                errors.append(f"Transcriber {source_name} source missing: {missing_keys}")
             
             # Check AI system integration
             if self.component_status['ai_system']:

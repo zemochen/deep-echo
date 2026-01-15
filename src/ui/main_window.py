@@ -262,6 +262,13 @@ class MainWindow:
         """Set freeze button command for backward compatibility."""
         if self.ui_controller.freeze_button:
             self.ui_controller.freeze_button.configure(command=command)
+    
+    def cleanup(self):
+        """Clean up the main window resources."""
+        logger.info("Cleaning up main window...")
+        self.stop_ui_updates()
+        if hasattr(self.ui_controller, 'cleanup'):
+            self.ui_controller.cleanup()
 
 
 def create_main_window() -> MainWindow:
@@ -272,10 +279,3 @@ def create_main_window() -> MainWindow:
         MainWindow: New main window instance
     """
     return MainWindow()
-    
-    def cleanup(self):
-        """Clean up the main window resources."""
-        logger.info("Cleaning up main window...")
-        self.stop_ui_updates()
-        if hasattr(self.ui_controller, 'cleanup'):
-            self.ui_controller.cleanup()

@@ -168,6 +168,20 @@ class GPTResponder:
         Args:
             transcriber: Audio transcriber instance to monitor
         """
+        # Validate transcriber is properly initialized
+        if not transcriber:
+            logger.error("Transcriber is None - cannot start response loop")
+            return
+        
+        if not hasattr(transcriber, 'transcript_changed_event'):
+            logger.error("Transcriber missing transcript_changed_event - cannot start response loop")
+            return
+        
+        if not hasattr(transcriber, 'get_transcript'):
+            logger.error("Transcriber missing get_transcript method - cannot start response loop")
+            return
+        
+        logger.info("Response loop started successfully with valid transcriber")
         last_submit = datetime.utcnow()
         
         while not self._stop_event.is_set():

@@ -301,6 +301,8 @@ class AudioTranscriber:
             # Filter out empty or invalid transcriptions
             if text and text.strip() and text.lower() != 'you':
                 latest_time = max(time for _, time in audio_data)
+                # Log transcription details
+                logger.debug(f"Transcribed {source_name}: {text} (timestamp: {latest_time})")
                 return (source_name, text.strip(), latest_time)
                 
         except Exception as e:
@@ -401,6 +403,14 @@ class AudioTranscriber:
             
             # Format the transcript entry
             formatted_text = f"{who_spoke}: [{text}]\n\n"
+            
+            # Print to console with timestamp
+            timestamp_str = time_spoken.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+            console_output = f"[{timestamp_str}] {who_spoke}: {text}"
+            print(console_output)
+            
+            # Also log to logger
+            logger.info(f"{who_spoke}: {text}")
             
             if source_info["new_phrase"] or len(transcript) == 0:
                 # New phrase - add as new entry

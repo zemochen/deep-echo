@@ -63,6 +63,7 @@ def main():
     # Configure logging level
     if args['verbose']:
         import logging
+
         logging.getLogger().setLevel(logging.DEBUG)
     
     # Always use integrated application
