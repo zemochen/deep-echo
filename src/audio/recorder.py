@@ -5,7 +5,7 @@ This module provides audio recording functionality for microphone and speaker so
 It handles cross-platform audio device detection and recording with proper error handling.
 """
 
-import custom_speech_recognition as sr
+import src.custom_speech_recognition as sr
 import os
 import logging
 from datetime import datetime

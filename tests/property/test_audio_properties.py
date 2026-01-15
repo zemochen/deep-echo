@@ -29,7 +29,7 @@ import queue
 import time
 from datetime import datetime
 from unittest.mock import Mock, patch, MagicMock
-import custom_speech_recognition as sr
+import src.custom_speech_recognition as sr
 
 from src.audio.recorder import (
     BaseRecorder,
@@ -384,7 +384,7 @@ def test_property_audio_source_distinction_marking(mic_text_samples, speaker_tex
     from src.audio.transcriber import AudioTranscriber
     from datetime import datetime, timezone
     from unittest.mock import Mock
-    import custom_speech_recognition as sr
+    import src.custom_speech_recognition as sr
     
     # Filter out empty or whitespace-only samples and make them unique per source
     mic_texts = [f"mic_{i}_{text.strip()}" for i, text in enumerate(mic_text_samples) if text.strip()]
@@ -491,7 +491,7 @@ def test_property_audio_source_consistency(num_transcriptions):
     from src.audio.transcriber import AudioTranscriber
     from datetime import datetime, timezone
     from unittest.mock import Mock
-    import custom_speech_recognition as sr
+    import src.custom_speech_recognition as sr
     
     # Create mock audio sources
     mock_mic_source = Mock(spec=sr.Microphone)

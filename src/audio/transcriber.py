@@ -15,7 +15,7 @@ import io
 from datetime import timedelta, datetime
 from heapq import merge
 from typing import Dict, List, Tuple, Optional, Callable, Any
-import custom_speech_recognition as sr
+import src.custom_speech_recognition as sr
 import pyaudio
 
 from src.utils.logger import get_logger

@@ -135,7 +135,7 @@ from typing import Optional, Callable
 
 # 第三方库导入
 import numpy as np
-import custom_speech_recognition as sr
+from src import custom_speech_recognition as sr
 
 # 本地模块导入
 from src.audio.recorder import AudioRecorder
