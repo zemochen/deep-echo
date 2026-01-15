@@ -66,4 +66,5 @@ Temporary Items
 # Jupyter Notebook 检查点
 .ipynb_checkpoints/
 transcript_log/
+logs/
 /.vscode/
