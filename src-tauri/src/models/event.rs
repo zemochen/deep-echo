@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
-use super::{TranscriptData, ResponseData, SystemStatus, ConfigData};
+use super::response::{TranscriptData, ResponseData, SystemStatus};
+use super::request::ConfigData;
 
 /// Events that can be emitted from backend to frontend
 #[derive(Debug, Clone, Serialize, Deserialize)]

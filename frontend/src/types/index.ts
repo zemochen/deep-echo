@@ -16,3 +16,9 @@ export * from './audio';
 
 // UI types
 export * from './ui';
+
+// System types
+export * from './system';
+
+// Python service types
+export * from './python-service';

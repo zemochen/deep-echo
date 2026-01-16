@@ -33,11 +33,22 @@ serde_json = "1.0"
 tokio = { version = "1", features = ["full"] }
 anyhow = "1.0"
 thiserror = "1.0"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+# System information dependencies
+sysinfo = "0.30"
+hostname = "0.3"
+num_cpus = "1.16"
+pnet = "0.34"
+# Audio device enumeration (optional)
+cpal = { version = "0.15", optional = true }
 
 [features]
 # This feature is used for production builds or when `devPath` points to the filesystem
 # DO NOT REMOVE!!
 custom-protocol = ["tauri/custom-protocol"]
+# Optional audio device enumeration
+audio-devices = ["cpal"]
 
 [profile.release]
 panic = "abort"
