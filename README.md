@@ -3,6 +3,16 @@
 
 DeepEcho is a comprehensive real-time voice transcription and AI assistant system that supports multiple AI providers. It captures both microphone and speaker audio, provides live transcription, and generates intelligent response suggestions using various AI models including DeepSeek, OpenAI GPT, Claude, Grok, and more.
 
+## 🏗️ Architecture
+
+DeepEcho uses a modern frontend-backend separation architecture:
+
+- **Frontend** (TypeScript/React/MUI): Modern web-based UI
+- **Middleware** (Tauri/Rust): Cross-platform framework and IPC layer
+- **Backend** (Python): AI processing and audio handling
+
+See [Architecture Documentation](docs/architecture.md) for details.
+
 ## ✨ Key Features
 
 - **🎤 Real-time Audio Capture**: Simultaneous microphone and speaker audio recording
@@ -18,8 +28,10 @@ DeepEcho is a comprehensive real-time voice transcription and AI assistant syste
 
 ### 📋 Prerequisites
 
-- Python >=3.8.0
-- FFmpeg (for audio processing)
+- **Node.js** 18+ and npm
+- **Rust** 1.70+ (install via [rustup](https://rustup.rs/))
+- **Python** >=3.8.0
+- **FFmpeg** (for audio processing)
 - At least one AI provider API key (see [API Setup Guide](API_SETUP.md))
 - Windows OS / macOS
 
@@ -31,9 +43,23 @@ DeepEcho is a comprehensive real-time voice transcription and AI assistant syste
    cd deep_echo
    ```
 
-2. **Install dependencies:**
+2. **Install Tauri CLI:**
    ```bash
+   cargo install tauri-cli
+   ```
+
+3. **Install frontend dependencies:**
+   ```bash
+   cd frontend
+   npm install
+   cd ..
+   ```
+
+4. **Install backend dependencies:**
+   ```bash
+   cd backend
    pip install -r requirements.txt
+   cd ..
    ```
 
 3. **Set up security (Recommended):**
@@ -47,7 +73,7 @@ DeepEcho is a comprehensive real-time voice transcription and AI assistant syste
    ```
    This will configure git hooks to prevent accidental API key commits.
 
-3. **Set up API keys** (choose one method):
+4. **Set up API keys** (choose one method):
 
    **Method 1: Configuration File (Recommended)**
    ```bash
@@ -74,8 +100,31 @@ DeepEcho is a comprehensive real-time voice transcription and AI assistant syste
 
 4. **Run DeepEcho:**
    ```bash
-   python main.py
+   npm run tauri dev
    ```
+
+## 📚 Documentation
+
+- [Architecture](docs/architecture.md) - System architecture and design
+- [API Reference](docs/api.md) - Complete API documentation
+- [Development Guide](docs/development.md) - Development setup and workflow
+- [Deployment Guide](docs/deployment.md) - Building and deploying
+
+## 📁 Project Structure
+
+```
+deepecho/
+├── frontend/          # React + TypeScript frontend
+├── src-tauri/         # Tauri middleware layer
+├── backend/           # Python backend service
+├── docs/              # Documentation
+└── scripts/           # Build and deployment scripts
+```
+
+See component-specific READMEs:
+- [Frontend README](frontend/README.md)
+- [Tauri README](src-tauri/README.md)
+- [Backend README](backend/README.md)
 
 ## 🎯 Usage Modes
 

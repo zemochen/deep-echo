@@ -1,66 +1,92 @@
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
+# Frontend (React/TypeScript)
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.env.local
+frontend/.env.*.local
+frontend/*.log
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.DS_Store
+frontend/.vscode/
+frontend/.idea/
 
-# Virtual Environment
-.venv/
-venv/
-ENV/
-env/
+# Tauri
+src-tauri/target/
+src-tauri/Cargo.lock
+src-tauri/.env
+src-tauri/.env.local
+src-tauri/dist/
+src-tauri/build/
+
+# Backend (Python)
+backend/__pycache__/
+backend/*.py[cod]
+backend/*$py.class
+backend/*.so
+backend/.Python
+backend/build/
+backend/develop-eggs/
+backend/dist/
+backend/downloads/
+backend/eggs/
+backend/.eggs/
+backend/lib/
+backend/lib64/
+backend/parts/
+backend/sdist/
+backend/var/
+backend/wheels/
+backend/pip-wheel-metadata/
+backend/share/python-wheels/
+backend/*.egg-info/
+backend/.installed.cfg
+backend/*.egg
+backend/MANIFEST
+backend/.env
+backend/.env.local
+backend/.venv/
+backend/venv/
+backend/ENV/
+backend/env/
+backend/.vscode/
+backend/.idea/
+backend/.pytest_cache/
+backend/.hypothesis/
+backend/htmlcov/
+backend/.coverage
+backend/.coverage.*
+backend/.cache
+backend/nosetests.xml
+backend/coverage.xml
+backend/*.cover
+backend/.hypothesis/
+backend/.pytest_cache/
+backend/logs/
+backend/*.log
 
 # IDE
-/.idea
 .vscode/
+.idea/
 *.swp
 *.swo
 *~
 
-# Audio files
-*.wav
-
-# Security - API Keys and Secrets
-keys.py
+# OS
+.DS_Store
+Thumbs.db
 .env
 .env.local
+
+# Root level
+*.log
+keys.py
 *.key
 *.pem
 secrets.json
 config.local.json
 
-# User Configuration (exclude from git)
-/config.json
-
-# But keep template configurations in resources/
-!resources/*.json
-# General
-.DS_Store
-__MACOSX/
-.AppleDouble
-.LSOverride
-Icon[
-]
-
-# Thumbnails
-._*
-
-# Files that might appear in the root of a volume
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
-.com.apple.timemachine.donotpresent
-
-# Directories potentially created on remote AFP share
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
 
 .hypothesis/
 # Jupyter Notebook 检查点
