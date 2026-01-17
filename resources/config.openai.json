@@ -1,0 +1,38 @@
+{
+  "audio": {
+    "use_api_mode": true,
+    "record_timeout": 3,
+    "phrase_timeout": 3.05,
+    "energy_threshold": 1000,
+    "max_phrases": 10,
+    "processing_interval": 0.1
+  },
+  "ai_provider": {
+    "provider_type": "openai",
+    "api_key": "your-openai-api-key-here",
+    "model": "gpt-3.5-turbo",
+    "base_url": null,
+    "timeout": 30,
+    "max_retries": 3,
+    "response_interval": 5
+  },
+  "ui": {
+    "use_new_ui": true,
+    "update_interval": 0.3,
+    "window_width": 1200,
+    "window_height": 800,
+    "theme": "dark"
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "deepecho.log",
+    "max_size": "10MB",
+    "backup_count": 5
+  },
+  "performance": {
+    "enable_optimization": true,
+    "memory_limit": "1GB",
+    "cpu_limit": 80,
+    "queue_size_limit": 1000
+  }
+}

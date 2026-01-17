@@ -1,9 +1,9 @@
-# LlmClient.py
 from openai import OpenAI
 import keys
 
 def get_openai_client():
-  return get_volce_engine()
+  """Get OpenAI client for API calls."""
+  return OpenAI(api_key=keys.OPENAI_API_KEY)
 
 def request_deep_seek(content):
 

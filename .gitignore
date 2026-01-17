@@ -1,5 +1,70 @@
+# Python
 __pycache__/
-*.wav
-keys.py
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual Environment
 .venv/
+venv/
+ENV/
+env/
+
+# IDE
 /.idea
+.vscode/
+*.swp
+*.swo
+*~
+
+# Audio files
+*.wav
+
+# Security - API Keys and Secrets
+keys.py
+.env
+.env.local
+*.key
+*.pem
+secrets.json
+config.local.json
+
+# User Configuration (exclude from git)
+/config.json
+
+# But keep template configurations in resources/
+!resources/*.json
+# General
+.DS_Store
+__MACOSX/
+.AppleDouble
+.LSOverride
+Icon[
+]
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+.hypothesis/
+# Jupyter Notebook 检查点
+.ipynb_checkpoints/
+transcript_log/
+logs/
+/.vscode/
