@@ -10,7 +10,7 @@ Run the setup check script for your platform:
 
 **macOS/Linux:**
 ```bash
-./src-tauri/check_setup.sh
+./backend-tauri/check_setup.sh
 ```
 
 **Windows:**
@@ -27,7 +27,7 @@ If the check script reports missing dependencies, follow the instructions in [SE
 Once all dependencies are installed:
 
 ```bash
-cd src-tauri
+cd backend-tauri
 cargo build
 ```
 

@@ -71,7 +71,7 @@ This may take several minutes to compile.
 Navigate to the src-tauri directory and try building:
 
 ```bash
-cd src-tauri
+cd backend-tauri
 cargo build
 ```
 

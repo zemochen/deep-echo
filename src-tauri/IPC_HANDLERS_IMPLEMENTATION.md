@@ -180,7 +180,7 @@ let recent = handler.get_recent_errors(10).await;
 All handlers include comprehensive unit tests:
 
 ```bash
-cd src-tauri
+cd backend-tauri
 cargo test --lib
 ```
 

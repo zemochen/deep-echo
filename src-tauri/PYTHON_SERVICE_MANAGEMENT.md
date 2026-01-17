@@ -224,7 +224,7 @@ The backend service should:
 ### Example Backend Structure
 
 ```python
-# src/backend_service.py
+# backend/backend_service.py
 import sys
 import signal
 import logging
@@ -305,7 +305,7 @@ if __name__ == "__main__":
 The service management includes unit tests:
 
 ```bash
-cd src-tauri
+cd backend-tauri
 cargo test python_service
 ```
 

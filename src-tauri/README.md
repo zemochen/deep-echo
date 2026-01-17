@@ -80,7 +80,7 @@ check_setup.bat
 ### Installation
 
 ```bash
-cd src-tauri
+cd backend-tauri
 cargo build
 ```
 
