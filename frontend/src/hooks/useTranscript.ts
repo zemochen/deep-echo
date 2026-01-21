@@ -203,9 +203,18 @@ export function useTranscript(
       const transcript = await getTranscript();
       addTranscript(transcript);
     } catch (err) {
+      // 如果 backend 未启动，静默失败而不是抛出错误
       const errorMessage = err instanceof Error ? err.message : 'Failed to load transcript';
-      setError(errorMessage);
-      onError?.(err instanceof Error ? err : new Error(errorMessage));
+
+      // 只在非 "command not found" 或类似错误时才记录
+      if (!errorMessage.includes('command not found') &&
+          !errorMessage.includes('not available')) {
+        setError(errorMessage);
+        onError?.(err instanceof Error ? err : new Error(errorMessage));
+      } else {
+        // Backend 可能还没启动，等待事件更新
+        console.log('ℹ️ Backend not ready, waiting for transcript events...');
+      }
     } finally {
       setIsLoading(false);
     }

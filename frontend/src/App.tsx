@@ -1,11 +1,11 @@
 /**
  * Main application component
- * Implements the main layout structure with header, content areas, and control panel
+ * Implements correct hooks integration for real-time data
  * Requirements: 1.1
  */
 
-import { useState } from 'react';
-import { ThemeProvider, CssBaseline, Box, Container, AppBar, Toolbar, Typography, Grid, Paper } from '@mui/material';
+import { useState, useEffect } from 'react';
+import { ThemeProvider, CssBaseline, Box, Container, AppBar, Toolbar, Typography, Grid, Paper, Stack, Alert, AlertTitle } from '@mui/material';
 import { theme } from './theme/theme';
 import {
   TranscriptDisplay,
@@ -15,49 +15,86 @@ import {
   StatusIndicator,
 } from './components';
 import type { TranscriptData, ResponseData, SystemStatus } from './types';
+import { useTranscript } from './hooks';
+import { useResponse } from './hooks';
+import { useAppStore } from './store/appStore';
+
+// Check if we're in Tauri environment
+const IS_TAURI_ENV = typeof window !== 'undefined' &&
+                       typeof (window as any).__TAURI_INTERNALS__ !== 'undefined';
 
 function App() {
-  // Mock state for demonstration
-  const [transcripts] = useState<TranscriptData[]>([
-    {
-      id: '1',
-      timestamp: Date.now() - 5000,
-      source: 'microphone',
-      text: 'Hello, this is a test transcript from the microphone.',
-      confidence: 0.95,
-    },
-    {
-      id: '2',
-      timestamp: Date.now() - 3000,
-      source: 'speaker',
-      text: 'This is a response from the speaker output.',
-      confidence: 0.92,
-    },
-  ]);
+  // Tauri environment check
+  useEffect(() => {
+    if (!IS_TAURI_ENV) {
+      console.warn('========================================');
+      console.warn('⚠️  NOT RUNNING IN TAURI ENVIRONMENT');
+      console.warn('========================================');
+      console.warn('Your application is running in a web browser.');
+      console.warn('Tauri features (invoke, listen) will NOT work.');
+      console.warn('');
+      console.warn('To run with Tauri:');
+      console.warn('  1. Stop the current server');
+      console.warn('  2. Run: ./dev.sh dev');
+      console.warn('  3. Or: npm run tauri dev');
+      console.warn('========================================');
+    }
+  }, []);
 
-  const [responses] = useState<ResponseData[]>([
-    {
-      id: '1',
-      timestamp: Date.now() - 4000,
-      provider: 'OpenAI',
-      text: 'This is a sample AI response. The system is working correctly and processing your input.',
-      context: 'Sample context for the response',
+  // ✅ 使用 useTranscript hook（自动加载和监听）
+  const {
+    transcripts,
+    isLoading: isLoadingTranscript,
+    isListening: isListeningTranscript,
+    error: transcriptError,
+    loadTranscript: reloadTranscript
+  } = useTranscript({
+    autoLoad: IS_TAURI_ENV,  // 只在 Tauri 环境中自动加载
+    autoListen: IS_TAURI_ENV,  // 只在 Tauri 环境中自动监听
+    onTranscriptUpdate: (transcript) => {
+      console.log('🎉 新 transcript:', transcript.text);
     },
-  ]);
+    onError: (err) => {
+      if (IS_TAURI_ENV) {
+        console.error('❌ Transcript 错误:', err);
+      } else {
+        console.warn('Skipping transcript error (not in Tauri environment):', err);
+      }
+    }
+  });
+
+  // ✅ 使用 useResponse hook
+  const {
+    responses,
+    isLoading: isLoadingResponse,
+    generate,
+    clearResponses: clearResponsesData
+  } = useResponse({
+    autoListen: true,
+    onResponseUpdate: (response) => {
+      console.log('🤖 AI 响应:', response.text);
+    }
+  });
+
+  // ✅ 从 Zustand store 获取状态
+  const [status, setStatus] = useState<SystemStatus>({
+    state: 'idle',
+    message: 'System is ready',
+  });
+
+  // ✅ 使用 store 的 clear 方法
+  const clearAllData = () => {
+    const clearTranscripts = useAppStore(state => state.clearTranscripts);
+    const clearResponses = useAppStore(state => state.clearResponses);
+    clearTranscripts();
+    clearResponses();
+    console.log('🗑️ 已清空所有数据');
+  };
 
   const [frozen, setFrozen] = useState(false);
   const [updateInterval, setUpdateInterval] = useState(5);
-  const [currentProvider, setCurrentProvider] = useState('OpenAI');
-  const [currentModel, setCurrentModel] = useState('gpt-4');
-
-  const [status] = useState<SystemStatus>({
-    state: 'idle',
-    message: 'System is ready and waiting for input',
-    details: {
-      uptime: '5 minutes',
-      lastUpdate: new Date().toLocaleTimeString(),
-    },
-  });
+  const [currentProvider, setCurrentProvider] = useState('DeepSeek');
+  const [currentModel, setCurrentModel] = useState('deepseek-chat');
 
   const availableProviders = ['OpenAI', 'Claude', 'DeepSeek', 'GLM', 'Grok'];
   const availableModels: Record<string, string[]> = {
@@ -76,9 +113,9 @@ function App() {
     setUpdateInterval(value);
   };
 
+  // ✅ 正确的清空上下文处理
   const handleClearContext = () => {
-    console.log('Clear context clicked');
-    // Will be implemented with actual state management
+    clearAllData();
   };
 
   const handleProviderChange = (provider: string) => {
@@ -100,6 +137,26 @@ function App() {
           flexDirection: 'column',
         }}
       >
+        {/* Tauri Environment Warning */}
+        {!IS_TAURI_ENV && (
+          <Alert severity="warning" sx={{ borderRadius: 0 }}>
+            <AlertTitle>⚠️ Not Running in Tauri Environment</AlertTitle>
+            <Typography variant="body2">
+              Your application appears to be running in a web browser.
+              Real-time transcript and AI response features require Tauri.
+            </Typography>
+            <Typography variant="body2" sx={{ mt: 1, fontWeight: 'bold' }}>
+              Please run with Tauri:
+            </Typography>
+            <Typography variant="body2" component="code" sx={{ display: 'block', mt: 1 }}>
+              ./dev.sh dev
+            </Typography>
+            <Typography variant="body2" component="code" sx={{ display: 'block', mt: 0.5 }}>
+              npm run tauri dev
+            </Typography>
+          </Alert>
+        )}
+
         {/* Header */}
         <AppBar position="static" elevation={1}>
           <Toolbar>
@@ -118,9 +175,16 @@ function App() {
                 {/* Transcript Display Area */}
                 <Grid size={{ xs: 12 }}>
                   <Paper elevation={2} sx={{ p: 3, minHeight: '300px' }}>
-                    <Typography variant="h6" gutterBottom>
-                      Transcript
-                    </Typography>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+                      <Typography variant="h6" gutterBottom>
+                        Transcript
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {isListeningTranscript ? '🔵 正在监听' : '⏸️ 未监听'}
+                        {isLoadingTranscript ? '⏳ 加载中...' : ''}
+                        {transcriptError && '⚠️ 错误'}
+                      </Typography>
+                    </Stack>
                     <TranscriptDisplay transcripts={transcripts} frozen={frozen} />
                   </Paper>
                 </Grid>
@@ -180,6 +244,26 @@ function App() {
                       onProviderChange={handleProviderChange}
                       onModelChange={handleModelChange}
                     />
+                  </Paper>
+                </Grid>
+
+                {/* Debug Info - 可以在生产环境删除 */}
+                <Grid size={{ xs: 12 }}>
+                  <Paper elevation={2} sx={{ p: 3 }}>
+                    <Typography variant="h6" gutterBottom>
+                      Debug Info
+                    </Typography>
+                    <Stack spacing={1}>
+                      <Typography variant="caption">
+                        Transcript 数量: {transcripts.length}
+                      </Typography>
+                      <Typography variant="caption">
+                        Response 数量: {responses.length}
+                      </Typography>
+                      <Typography variant="caption">
+                        最新 Transcript: {transcripts.length > 0 ? transcripts[transcripts.length - 1].text.substring(0, 50) + '...' : '无'}
+                      </Typography>
+                    </Stack>
                   </Paper>
                 </Grid>
               </Grid>
