@@ -14,7 +14,7 @@ except ImportError:
     CUSTOMTKINTER_AVAILABLE = False
 
 from typing import List, Optional, Callable, Dict, Any
-from src.utils.logger import get_logger
+from backend.utils.logger import get_logger
 
 logger = get_logger(__name__)
 

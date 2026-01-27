@@ -28,8 +28,8 @@ except ImportError:
     OPENAI_AVAILABLE = False
 
 from LlmClient import get_openai_client
-from src.utils.logger import get_logger
-from src.utils.exceptions import AudioTranscriptionError
+from backend.utils.logger import get_logger
+from backend.utils.exceptions import AudioTranscriptionError
 
 logger = get_logger(__name__)
 

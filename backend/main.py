@@ -15,7 +15,7 @@ parent_dir = os.path.dirname(current_dir)
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
-from src.utils.logger import get_logger
+from backend.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -69,7 +69,7 @@ def main():
     # Always use integrated application
     print("Starting DeepEcho Real-time Voice AI Assistant...")
     try:
-        from src.integration import run_integrated_application
+        from backend.integration import run_integrated_application
         return run_integrated_application()
     except ImportError as e:
         logger.error(f"Failed to import integrated application: {e}")

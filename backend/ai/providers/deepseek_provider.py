@@ -18,8 +18,8 @@ from .base_provider import (
     AIProviderRateLimitError,
     AIProviderTimeoutError
 )
-from src.utils.retry import retry_with_backoff, RetryConfig, circuit_breaker
-from src.utils.error_recovery import error_tracker
+from backend.utils.retry import retry_with_backoff, RetryConfig, circuit_breaker
+from backend.utils.error_recovery import error_tracker
 
 logger = logging.getLogger(__name__)
 

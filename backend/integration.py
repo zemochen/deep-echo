@@ -17,33 +17,33 @@ from pathlib import Path
 import logging
 
 # Import configuration management
-from src.config.config_manager import get_config_manager, SystemConfig, ConfigurationError
-from src.config.settings import (
+from backend.config.config_manager import get_config_manager, SystemConfig, ConfigurationError
+from backend.config.settings import (
     ERROR_MESSAGES, SUCCESS_MESSAGES, REQUIRED_DEPENDENCIES,
     DEFAULT_AI_PROVIDER, RECORD_TIMEOUT, PHRASE_TIMEOUT
 )
-from src.utils.logger import get_logger
-from src.utils.exceptions import DeepEchoError, AudioSystemError, TranscriptionError, AISystemError
+from backend.utils.logger import get_logger
+from backend.utils.exceptions import DeepEchoError, AudioSystemError, TranscriptionError, AISystemError
 
 # Import core components
-from src.audio.recorder import DefaultMicRecorder, DefaultSpeakerRecorder, AudioRecorderError
-from src.audio.transcriber import AudioTranscriber
-from src.audio.models import TranscriberModel, LocalWhisperModel, APIWhisperModel
-from src.ai.adapter import AIAdapter
-from src.ai.responder import GPTResponder
-from src.ui.main_window import MainWindow
-from src.ui.controller import UIController
+from backend.audio.recorder import DefaultMicRecorder, DefaultSpeakerRecorder, AudioRecorderError
+from backend.audio.transcriber import AudioTranscriber
+from backend.audio.models import TranscriberModel, LocalWhisperModel, APIWhisperModel
+from backend.ai.adapter import AIAdapter
+from backend.ai.responder import GPTResponder
+from backend.ui.main_window import MainWindow
+from backend.ui.controller import UIController
 
 # Import audio system components
-from src.audio_system.audio_factory import AudioSystemFactory
-from src.audio_system.audio_interface import AudioSystemInterface
+from backend.audio_system.audio_factory import AudioSystemFactory
+from backend.audio_system.audio_interface import AudioSystemInterface
 
 # Import utility components
-from src.utils.threading import ThreadManager, ThreadPriority
-from src.utils.queue_manager import QueueManager, QueueType
-from src.utils.resource_optimizer import ResourceOptimizer
-from src.utils.error_recovery import ErrorRecoveryManager
-from src.utils.retry import retry_with_backoff, RetryConfig
+from backend.utils.threading import ThreadManager, ThreadPriority
+from backend.utils.queue_manager import QueueManager, QueueType
+from backend.utils.resource_optimizer import ResourceOptimizer
+from backend.utils.error_recovery import ErrorRecoveryManager
+from backend.utils.retry import retry_with_backoff, RetryConfig
 
 logger = get_logger(__name__)
 
@@ -484,7 +484,7 @@ class IntegratedDeepEchoApplication:
     
     def _create_dummy_provider(self, message: str):
         """Create a dummy AI provider for fallback."""
-        from src.ai.providers.base_provider import AIProvider
+        from backend.ai.providers.base_provider import AIProvider
         
         class DummyProvider(AIProvider):
             def __init__(self, msg: str):

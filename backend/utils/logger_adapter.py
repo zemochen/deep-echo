@@ -8,7 +8,7 @@ from typing import Optional, Dict, Any
 from datetime import datetime
 from loguru import logger
 
-from src.utils.logger_config import LoggerConfig
+from backend.utils.logger_config import LoggerConfig
 
 
 class LoggerAdapter:

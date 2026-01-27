@@ -84,13 +84,13 @@ pip install -r requirements.txt
 
 ```bash
 # Run backend service
-python src/backend_service.py
+python backend/backend_service.py
 
 # Run tests
 pytest tests/
 
 # Run with verbose logging
-python src/backend_service.py --verbose
+python backend/backend_service.py --verbose
 ```
 
 ## Audio Capture

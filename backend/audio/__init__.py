@@ -4,7 +4,7 @@ Audio processing layer
 This package contains audio recording and transcription functionality.
 """
 
-from src.audio.recorder import (
+from backend.audio.recorder import (
     BaseRecorder,
     DefaultMicRecorder,
     DefaultSpeakerRecorder,

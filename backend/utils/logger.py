@@ -6,8 +6,8 @@ Uses the enhanced loguru-based logging system via LoggerFactory.
 """
 
 from typing import Optional
-from src.utils.logger_factory import LoggerFactory
-from src.utils.logger_config import LoggerConfig
+from backend.utils.logger_factory import LoggerFactory
+from backend.utils.logger_config import LoggerConfig
 
 
 def setup_logger(

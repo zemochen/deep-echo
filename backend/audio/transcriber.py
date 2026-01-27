@@ -15,17 +15,18 @@ import io
 from datetime import timedelta, datetime
 from heapq import merge
 from typing import Dict, List, Tuple, Optional, Callable, Any
-import src.custom_speech_recognition as sr
+import backend.custom_speech_recognition as sr
 import pyaudio
 
-from src.utils.logger import get_logger
-from src.utils.exceptions import AudioTranscriptionError
-from src.utils.retry import retry_with_backoff, RetryConfig
-from src.utils.error_recovery import error_tracker, resource_cleanup_manager
-from src.utils.threading import get_thread_manager, ThreadPriority, ManagedThread
-from src.utils.queue_manager import get_queue_manager, QueueType, ManagedQueue
-from src.utils.resource_optimizer import get_resource_optimizer
-from src.audio.models import BaseTranscriber, TranscriptionMode, LanguageDetectionResult
+from backend.utils.logger import get_logger
+from backend.utils.exceptions import AudioTranscriptionError
+from backend.utils.retry import retry_with_backoff, RetryConfig
+from backend.utils.error_recovery import error_tracker, resource_cleanup_manager
+from backend.utils.threading import get_thread_manager, ThreadPriority, ManagedThread
+from backend.utils.queue_manager import get_queue_manager, QueueType, ManagedQueue
+from backend.utils.resource_optimizer import get_resource_optimizer
+from backend.audio.models import BaseTranscriber, TranscriptionMode, LanguageDetectionResult
+from backend.ipc.event_emitter import get_event_emitter
 
 # Constants
 PHRASE_TIMEOUT = 3.05
@@ -422,6 +423,19 @@ class AudioTranscriber:
                 transcript[0] = (formatted_text, time_spoken)
             
             logger.debug(f"Updated transcript for {who_spoke}: {text[:50]}...")
+            
+            # Emit transcript-updated event
+            try:
+                event_emitter = get_event_emitter()
+                event_emitter.emit_transcript_updated({
+                    "id": f"{who_spoke}_{time_spoken.timestamp()}",
+                    "timestamp": time_spoken.isoformat(),
+                    "source": "microphone" if who_spoke == "You" else "speaker",
+                    "text": text,
+                    "confidence": 1.0  # Default confidence
+                })
+            except Exception as e:
+                logger.warning(f"Failed to emit transcript-updated event: {e}")
     
     def get_transcript(self) -> str:
         """

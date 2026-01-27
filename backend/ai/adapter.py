@@ -7,6 +7,7 @@ different AI providers, enabling seamless provider switching and configuration.
 
 import logging
 from typing import Optional, Dict, Any, Type
+from datetime import datetime
 
 from .providers.base_provider import AIProvider, AIProviderError
 from .providers.deepseek_provider import DeepSeekProvider
@@ -15,6 +16,7 @@ from .providers.grok_provider import GrokProvider
 from .providers.claude_provider import ClaudeProvider
 from .providers.volcano_provider import VolcanoEngineProvider
 from .providers.glm_provider import GLMProvider
+from backend.ipc.event_emitter import get_event_emitter
 
 logger = logging.getLogger(__name__)
 
@@ -185,9 +187,36 @@ class AIAdapter:
         try:
             response = self._current_provider.generate_response(prompt, **kwargs)
             logger.debug(f"Generated response using {self._current_provider.get_provider_name()}")
+            
+            # Emit response-generated event
+            try:
+                event_emitter = get_event_emitter()
+                event_emitter.emit_response_generated({
+                    "id": f"response_{datetime.utcnow().timestamp()}",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "provider": self._current_provider.get_provider_name(),
+                    "model": self._current_provider.get_model_name(),
+                    "text": response,
+                    "context": prompt[:200]  # Include first 200 chars of context
+                })
+            except Exception as e:
+                logger.warning(f"Failed to emit response-generated event: {e}")
+            
             return response
         except Exception as e:
             logger.error(f"Failed to generate response: {e}")
+            
+            # Emit error event
+            try:
+                event_emitter = get_event_emitter()
+                event_emitter.emit_error_occurred({
+                    "error": str(e),
+                    "component": "ai_adapter",
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+            except Exception as emit_error:
+                logger.warning(f"Failed to emit error event: {emit_error}")
+            
             raise
     
     def get_current_provider(self) -> Optional[str]:

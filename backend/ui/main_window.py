@@ -19,10 +19,10 @@ except ImportError:
     ctk = None
     CUSTOMTKINTER_AVAILABLE = False
 
-from src.ui.controller import UIController
-from src.ui.components import AIProviderSelector, StatusIndicator
-from src.ai.adapter import AIAdapter
-from src.utils.logger import get_logger
+from backend.ui.controller import UIController
+from backend.ui.components import AIProviderSelector, StatusIndicator
+from backend.ai.adapter import AIAdapter
+from backend.utils.logger import get_logger
 
 logger = get_logger(__name__)
 

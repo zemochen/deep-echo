@@ -5,8 +5,8 @@ Factory pattern implementation for creating platform-specific audio interfaces.
 """
 
 import platform
-from src.audio_system.audio_interface import AudioSystemInterface
-from src.utils.logger import get_logger
+from backend.audio_system.audio_interface import AudioSystemInterface
+from backend.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -26,12 +26,12 @@ class AudioSystemFactory:
         
         try:
             if system == "Windows":
-                from src.audio_system.windows_audio import WindowsAudioSystem
+                from backend.audio_system.windows_audio import WindowsAudioSystem
                 return WindowsAudioSystem()
             elif system == "Darwin":  # macOS
                 # Try to import MacOSAudioSystem, fall back to GenericAudioSystem
                 try:
-                    from src.audio_system.macos_audio import MacOSAudioSystem
+                    from backend.audio_system.macos_audio import MacOSAudioSystem
                     return MacOSAudioSystem()
                 except ImportError:
                     logger.warning("MacOSAudioSystem not found, using generic audio system")
@@ -73,10 +73,10 @@ def get_audio_device():
     """
     system = platform.system()
     if system == "Windows":
-        from src.audio_system.windows_audio import WindowsAudio
+        from backend.audio_system.windows_audio import WindowsAudio
         return WindowsAudio()
     elif system == "Darwin":  # macOS
-        from src.audio_system.macos_audio import MacOSAudio
+        from backend.audio_system.macos_audio import MacOSAudio
         return MacOSAudio()
     else:
         raise NotImplementedError(f"Unsupported system: {system}")

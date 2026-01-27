@@ -7,7 +7,7 @@ API keys, and system settings.
 
 import re
 from typing import Dict, List, Tuple, Optional
-from src.utils.logger import get_logger
+from backend.utils.logger import get_logger
 
 logger = get_logger(__name__)
 

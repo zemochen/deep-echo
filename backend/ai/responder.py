@@ -13,8 +13,8 @@ import threading
 
 from .adapter import AIAdapter
 from .providers.base_provider import AIProviderError
-from src.utils.threading import get_thread_manager, ThreadPriority, ManagedThread
-from src.utils.resource_optimizer import get_resource_optimizer
+from backend.utils.threading import get_thread_manager, ThreadPriority, ManagedThread
+from backend.utils.resource_optimizer import get_resource_optimizer
 
 logger = logging.getLogger(__name__)
 

@@ -5,17 +5,18 @@ This module provides audio recording functionality for microphone and speaker so
 It handles cross-platform audio device detection and recording with proper error handling.
 """
 
-import src.custom_speech_recognition as sr
+import backend.custom_speech_recognition as sr
 import os
 import logging
 from datetime import datetime
 from typing import Optional, Callable
 import queue
 
-from src.audio_system import get_default_speaker
-from src.utils.retry import retry_with_backoff, RetryConfig
-from src.utils.error_recovery import error_tracker, device_recovery_manager
-from src.utils.exceptions import AudioError, AudioDeviceError
+from backend.audio_system import get_default_speaker
+from backend.utils.retry import retry_with_backoff, RetryConfig
+from backend.utils.error_recovery import error_tracker, device_recovery_manager
+from backend.utils.exceptions import AudioError, AudioDeviceError
+from backend.ipc.event_emitter import get_event_emitter
 
 try:
     import pyaudiowpatch as pyaudio
@@ -150,6 +151,14 @@ class BaseRecorder:
                 phrase_time_limit=RECORD_TIMEOUT
             )
             logger.info("Background recording started successfully")
+            
+            # Emit audio-started event
+            try:
+                event_emitter = get_event_emitter()
+                event_emitter.emit_audio_started()
+            except Exception as e:
+                logger.warning(f"Failed to emit audio-started event: {e}")
+                
         except Exception as e:
             error = AudioRecordingError(f"Background recording failed: {e}")
             error_tracker.record_error(error, "audio_recorder_background")
@@ -162,6 +171,14 @@ class BaseRecorder:
             try:
                 self._stop_listening(wait_for_stop=False)
                 logger.info("Background recording stopped")
+                
+                # Emit audio-stopped event
+                try:
+                    event_emitter = get_event_emitter()
+                    event_emitter.emit_audio_stopped()
+                except Exception as e:
+                    logger.warning(f"Failed to emit audio-stopped event: {e}")
+                    
             except Exception as e:
                 logger.error(f"Error stopping recording: {e}")
 

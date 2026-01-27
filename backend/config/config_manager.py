@@ -14,8 +14,8 @@ from typing import Dict, Any, Optional, List, Tuple
 from dataclasses import dataclass, asdict
 from pathlib import Path
 
-from src.config.validator import ConfigValidator
-from src.utils.logger import get_logger
+from backend.config.validator import ConfigValidator
+from backend.utils.logger import get_logger
 
 logger = get_logger(__name__)
 

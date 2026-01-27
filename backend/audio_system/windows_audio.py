@@ -4,7 +4,7 @@ Windows audio implementation
 Provides Windows-specific audio device detection using WASAPI loopback devices.
 """
 
-from src.audio_system.audio_interface import AudioInterface
+from backend.audio_system.audio_interface import AudioInterface
 import pyaudio
 
 

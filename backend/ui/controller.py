@@ -16,7 +16,7 @@ except ImportError:
 import threading
 import queue
 from typing import Optional, Callable, Tuple, List
-from src.utils.logger import get_logger
+from backend.utils.logger import get_logger
 
 logger = get_logger(__name__)
 

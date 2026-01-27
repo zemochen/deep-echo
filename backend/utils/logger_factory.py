@@ -8,8 +8,8 @@ from typing import Optional, Dict
 from loguru import logger
 import os
 
-from src.utils.logger_config import LoggerConfig
-from src.utils.logger_adapter import LoggerAdapter
+from backend.utils.logger_config import LoggerConfig
+from backend.utils.logger_adapter import LoggerAdapter
 
 
 class LoggerFactory:
