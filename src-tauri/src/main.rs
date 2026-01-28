@@ -90,8 +90,10 @@ fn main() {
             // Initialize Python service
             let python_config = PythonServiceConfig {
                 python_path: "python3".to_string(),
-                service_script: "src/backend_service.py".to_string(),
-                working_dir: None,
+                // Path relative to working_dir (which is set to project root)
+                service_script: "backend/backend_service.py".to_string(),
+                // Set working directory to project root for correct relative paths
+                working_dir: Some("..".to_string()),
                 env_vars: Vec::new(),
                 startup_timeout: 30,
                 health_check_interval: 10,

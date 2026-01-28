@@ -19,14 +19,30 @@ import { useTranscript } from './hooks';
 import { useResponse } from './hooks';
 import { useAppStore } from './store/appStore';
 
-// Check if we're in Tauri environment
-const IS_TAURI_ENV = typeof window !== 'undefined' &&
-                       typeof (window as any).__TAURI_INTERNALS__ !== 'undefined';
+// Check if we're in Tauri environment by trying to access invoke directly
+const checkTauriEnvironment = (): boolean => {
+  try {
+    // Try to access Tauri's internal API
+    // This is more reliable than checking __TAURI_INTERNALS__
+    if (typeof window !== 'undefined' && (window as any).__TAURI__) {
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.warn('[TauriEnv] Error checking environment:', error);
+    return false;
+  }
+};
+
+const IS_TAURI_ENV = checkTauriEnvironment();
 
 function App() {
-  // Tauri environment check
+  // Tauri environment check with delay to allow Tauri to initialize
   useEffect(() => {
-    if (!IS_TAURI_ENV) {
+    // Check again after component mounts
+    const isTauri = checkTauriEnvironment();
+
+    if (!isTauri) {
       console.warn('========================================');
       console.warn('⚠️  NOT RUNNING IN TAURI ENVIRONMENT');
       console.warn('========================================');
@@ -34,10 +50,11 @@ function App() {
       console.warn('Tauri features (invoke, listen) will NOT work.');
       console.warn('');
       console.warn('To run with Tauri:');
-      console.warn('  1. Stop the current server');
-      console.warn('  2. Run: ./dev.sh dev');
-      console.warn('  3. Or: npm run tauri dev');
+      console.warn('  1. Use: ./dev.sh dev');
+      console.warn('  2. Or: cd src-tauri && cargo tauri dev');
       console.warn('========================================');
+    } else {
+      console.log('[TauriEnv] ✓ Tauri environment detected - Run #', Date.now());
     }
   }, []);
 
@@ -180,9 +197,9 @@ function App() {
                         Transcript
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {isListeningTranscript ? '🔵 正在监听' : '⏸️ 未监听'}
-                        {isLoadingTranscript ? '⏳ 加载中...' : ''}
-                        {transcriptError && '⚠️ 错误'}
+                        {isListeningTranscript ? '🔵 Listening' : '⏸️ Not Listening'}
+                        {isLoadingTranscript ? '⏳ Loading...' : ''}
+                        {transcriptError && '⚠️ Error'}
                       </Typography>
                     </Stack>
                     <TranscriptDisplay transcripts={transcripts} frozen={frozen} />

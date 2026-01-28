@@ -5,7 +5,7 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '@tauri-apps/api/tauri';
 
 // ============================================================================
 // Hook Options

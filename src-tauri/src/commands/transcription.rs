@@ -1,6 +1,6 @@
 use crate::models::response::TranscriptData;
-use tauri::State;
 use std::sync::Mutex;
+use tauri::State;
 
 /// Shared state for transcription data
 pub struct TranscriptionState {
@@ -15,31 +15,54 @@ impl Default for TranscriptionState {
     }
 }
 
+impl TranscriptionState {
+    /// Add a new transcript to the state
+    pub fn add_transcript(&self, transcript: TranscriptData) -> Result<(), String> {
+        let mut transcripts = self.transcripts.lock().map_err(|e| e.to_string())?;
+        transcripts.push(transcript);
+        
+        // Keep only the last 100 transcripts to prevent memory issues
+        if transcripts.len() > 100 {
+            let excess = transcripts.len() - 100;
+            transcripts.drain(0..excess);
+        }
+        
+        Ok(())
+    }
+    
+    /// Clear all transcripts
+    pub fn clear_transcripts(&self) -> Result<(), String> {
+        let mut transcripts = self.transcripts.lock().map_err(|e| e.to_string())?;
+        transcripts.clear();
+        Ok(())
+    }
+}
+
 /// Get transcript data
-/// 
+///
 /// # Returns
 /// * `Result<TranscriptData, String>` - Latest transcript or error
 #[tauri::command]
 pub async fn get_transcript(
     state: State<'_, TranscriptionState>,
 ) -> Result<TranscriptData, String> {
-    // TODO: Send IPC command to Python backend to get transcript
-    // For now, we'll return the latest transcript from state or a mock
-    
+    // Get the latest transcript from state
     let transcripts = state.transcripts.lock().map_err(|e| e.to_string())?;
     
     if let Some(latest) = transcripts.last() {
         Ok(latest.clone())
     } else {
-        // Return a mock transcript if none exists
+        // Return empty transcript data with unique ID to avoid React key conflicts
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        
         Ok(TranscriptData {
-            id: "mock-1".to_string(),
-            timestamp: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs(),
+            id: format!("empty-{}", timestamp),
+            timestamp,
             source: "microphone".to_string(),
-            text: "No transcript available yet".to_string(),
+            text: "".to_string(),
             confidence: 0.0,
         })
     }
@@ -47,7 +70,10 @@ pub async fn get_transcript(
 
 /// Add a transcript to the state (internal helper for testing/IPC)
 #[allow(dead_code)]
-pub fn add_transcript(state: &TranscriptionState, transcript: TranscriptData) -> Result<(), String> {
+pub fn add_transcript(
+    state: &TranscriptionState,
+    transcript: TranscriptData,
+) -> Result<(), String> {
     let mut transcripts = state.transcripts.lock().map_err(|e| e.to_string())?;
     transcripts.push(transcript);
     Ok(())

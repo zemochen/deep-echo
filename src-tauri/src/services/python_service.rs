@@ -94,7 +94,7 @@ impl PythonService {
         let mut cmd = Command::new(&self.config.python_path);
         cmd.arg(&self.config.service_script)
             .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
+            .stderr(Stdio::inherit());
 
         // Set working directory if specified
         if let Some(ref working_dir) = self.config.working_dir {
@@ -106,12 +106,14 @@ impl PythonService {
             cmd.env(key, value);
         }
 
-        // Spawn the process
+        // Spawn process
         let child = cmd.spawn()
             .context("Failed to spawn Python service process")?;
 
         let pid = child.id();
-        println!("Python service started with PID: {}", pid);
+        println!("✓ Python service started with PID: {}", pid);
+        println!("  Command: {} {}", self.config.python_path, self.config.service_script);
+        println!("  Working dir: {:?}", self.config.working_dir);
 
         // Store the process
         let mut process = self.process.lock().unwrap();

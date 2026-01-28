@@ -4,7 +4,7 @@
  * Requirements: 3.1-3.8
  */
 
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '@tauri-apps/api/tauri';
 import type {
   TranscriptData,
   ConfigData,
