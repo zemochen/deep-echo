@@ -1,50 +1,117 @@
 # DeepEcho Development Guide
 
-## Getting Started
+This guide provides comprehensive instructions for setting up your development environment, understanding the development workflow, and debugging common issues in the DeepEcho frontend-backend separation architecture.
 
-This guide covers setting up the development environment and working with the DeepEcho codebase.
+## Table of Contents
 
-## Prerequisites
+1. [Development Environment Setup](#development-environment-setup)
+2. [Development Workflow](#development-workflow)
+3. [Debugging Tips](#debugging-tips)
+4. [Common Issues and Solutions](#common-issues-and-solutions)
+5. [Best Practices](#best-practices)
 
-### Required Software
+---
 
-- **Node.js** 18+ and npm/yarn
-- **Rust** 1.70+ (install via [rustup](https://rustup.rs/))
-- **Python** 3.8+
-- **FFmpeg** (for audio processing)
-- **Git**
+## Development Environment Setup
 
-### Platform-Specific Requirements
+### Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+#### Required Software
+
+1. **Node.js and npm**
+   - Version: Node.js 18+ and npm 9+
+   - Download: https://nodejs.org/
+   - Verify installation:
+     ```bash
+     node --version
+     npm --version
+     ```
+
+2. **Rust and Cargo**
+   - Version: Rust 1.70+
+   - Install via rustup: https://rustup.rs/
+   - Verify installation:
+     ```bash
+     rustc --version
+     cargo --version
+     ```
+
+3. **Python**
+   - Version: Python 3.8+
+   - Download: https://www.python.org/downloads/
+   - Verify installation:
+     ```bash
+     python --version
+     pip --version
+     ```
+
+4. **Tauri CLI**
+   - Install globally:
+     ```bash
+     npm install -g @tauri-apps/cli
+     ```
+   - Or use via npx (recommended for project-specific versions)
+
+#### Platform-Specific Requirements
 
 **Windows:**
-- Visual Studio Build Tools
-- PyAudioWPatch (auto-installed)
+- Visual Studio Build Tools 2019 or later
+- WebView2 Runtime (usually pre-installed on Windows 10/11)
+- Install via: https://developer.microsoft.com/en-us/microsoft-edge/webview2/
 
 **macOS:**
 - Xcode Command Line Tools
-- PortAudio: `brew install portaudio`
-- BlackHole: `brew install blackhole-2ch`
+  ```bash
+  xcode-select --install
+  ```
+- For audio capture: BlackHole virtual audio device
+  ```bash
+  brew install blackhole-2ch
+  ```
 
 **Linux:**
-- Build essentials
-- ALSA development libraries
+- Build essentials and development libraries
+  ```bash
+  sudo apt-get update
+  sudo apt-get install -y libwebkit2gtk-4.0-dev \
+    build-essential \
+    curl \
+    wget \
+    libssl-dev \
+    libgtk-3-dev \
+    libayatana-appindicator3-dev \
+    librsvg2-dev
+  ```
 
-## Initial Setup
+### Initial Setup
 
-### 1. Clone Repository
+#### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/deepecho.git
+git clone <repository-url>
 cd deepecho
 ```
 
-### 2. Install Tauri CLI
+#### 2. Set Up Python Backend
 
 ```bash
-cargo install tauri-cli
+# Create virtual environment
+python -m venv .venv
+
+# Activate virtual environment
+# On Windows:
+.venv\Scripts\activate
+# On macOS/Linux:
+source .venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
 ```
 
-### 3. Setup Frontend
+#### 3. Set Up Frontend
 
 ```bash
 cd frontend
@@ -52,296 +119,191 @@ npm install
 cd ..
 ```
 
-### 4. Setup Backend
+#### 4. Set Up Tauri
 
 ```bash
-cd backend
-pip install -r requirements.txt
-cd ..
-```
-
-### 5. Setup Tauri
-
-```bash
-cd src-tauri
+cd backend-tauri
 cargo build
 cd ..
 ```
 
-## Development Workflow
-
-### Running in Development Mode
-
-#### Option 1: Full Stack Development
-
-Run all components together:
+#### 5. Configure API Keys
 
 ```bash
-npm run tauri dev
+# Copy example keys file
+cp keys.example.py keys.py
+
+# Edit keys.py and add your API keys
+# For OpenAI, DeepSeek, Claude, etc.
+```
+
+#### 6. Configure Application
+
+```bash
+# Copy example config
+cp resources/config.example.json resources/config.json
+
+# Edit config.json with your preferences
+```
+
+### Verify Installation
+
+Run the verification script to ensure everything is set up correctly:
+
+```bash
+# On macOS/Linux:
+./dev.sh check
+
+# On Windows:
+dev.bat check
+```
+
+---
+
+## Development Workflow
+
+### Project Structure Overview
+
+```
+deepecho/
+├── frontend/           # React/TypeScript frontend
+├── src-tauri/         # Tauri middleware (Rust)
+├── src/               # Python backend
+├── docs/              # Documentation
+├── tests/             # Test suites
+└── scripts/           # Build and utility scripts
+```
+
+### Running the Application in Development Mode
+
+#### Quick Start (Recommended)
+
+Use the provided development scripts:
+
+```bash
+# On macOS/Linux:
+./dev.sh
+
+# On Windows:
+dev.bat
 ```
 
 This will:
-1. Start the frontend dev server (Vite)
-2. Build and run the Tauri app
-3. Start the Python backend service
+1. Start the Python backend service
+2. Build and launch the Tauri application
+3. Open the frontend with hot-reload enabled
 
-#### Option 2: Component-by-Component
+#### Manual Start (For Debugging)
 
-**Frontend only:**
+**Terminal 1 - Backend Service:**
+```bash
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+python backend/backend_service.py
+```
+
+**Terminal 2 - Tauri + Frontend:**
+```bash
+cd backend-tauri
+cargo tauri dev
+```
+
+### Development Modes
+
+#### Frontend Development
+
+For rapid frontend iteration without backend:
+
 ```bash
 cd frontend
 npm run dev
 ```
 
-**Backend only:**
+This starts Vite dev server on `http://localhost:5173` with:
+- Hot Module Replacement (HMR)
+- Fast refresh
+- TypeScript type checking
+
+**Note:** Tauri commands won't work in this mode. Use for UI-only development.
+
+#### Backend Development
+
+For backend-only testing:
+
 ```bash
-cd backend
-python src/backend_service.py
+source .venv/bin/activate
+python backend/backend_service.py --debug
 ```
 
-**Tauri only:**
+Test backend endpoints using the verification script:
+
 ```bash
-cd src-tauri
-cargo tauri dev
+python verify_backend_adaptation.py
 ```
 
-### Hot Reload
+#### Tauri Development
 
-- **Frontend**: Vite provides hot module replacement (HMR)
-- **Backend**: Restart required for changes
-- **Tauri**: Rebuild required for Rust changes
-
-### Development Tools
-
-#### Frontend
+For Tauri middleware development:
 
 ```bash
-cd frontend
-
-# Type checking
-npm run type-check
-
-# Linting
-npm run lint
-
-# Formatting
-npm run format
-
-# Testing
-npm run test
-```
-
-#### Backend
-
-```bash
-cd backend
-
-# Run tests
-pytest tests/
-
-# Run with coverage
-pytest --cov=src tests/
-
-# Linting
-pylint src/
-
-# Formatting
-black src/
-```
-
-#### Tauri
-
-```bash
-cd src-tauri
-
-# Check code
-cargo clippy
-
-# Format code
-cargo fmt
-
-# Run tests
+cd backend-tauri
+cargo build
 cargo test
 ```
 
-## Project Structure
+### Making Changes
 
-### Frontend Structure
+#### Frontend Changes
 
-```
-frontend/
-├── src/
-│   ├── components/     # React components
-│   ├── hooks/          # Custom hooks
-│   ├── services/       # Service layer
-│   ├── store/          # State management
-│   ├── types/          # TypeScript types
-│   ├── theme/          # MUI theme
-│   ├── App.tsx         # Main component
-│   └── main.tsx        # Entry point
-├── public/             # Static assets
-└── package.json
-```
+1. **Component Development:**
+   - Edit files in `frontend/src/components/`
+   - Changes auto-reload via HMR
+   - Check browser console for errors
 
-### Backend Structure
+2. **Type Definitions:**
+   - Update types in `frontend/src/types/`
+   - Run type check: `npm run type-check`
 
-```
-backend/
-├── src/
-│   ├── audio/          # Audio processing
-│   ├── ai/             # AI providers
-│   ├── config/         # Configuration
-│   ├── api/            # API layer
-│   ├── ipc/            # IPC communication
-│   └── utils/          # Utilities
-├── tests/              # Test files
-└── requirements.txt
-```
+3. **State Management:**
+   - Modify stores in `frontend/src/store/`
+   - Use React DevTools to inspect state
 
-### Tauri Structure
+4. **Styling:**
+   - Update theme in `frontend/src/theme/`
+   - Material-UI components use theme automatically
 
-```
-src-tauri/
-├── src/
-│   ├── commands/       # Command handlers
-│   ├── handlers/       # Core handlers
-│   ├── services/       # Service layer
-│   ├── models/         # Data models
-│   └── main.rs         # Entry point
-└── Cargo.toml
-```
+#### Backend Changes
 
-## Coding Standards
+1. **Core Logic:**
+   - Edit files in `src/audio/`, `src/ai/`, etc.
+   - Restart backend service to apply changes
 
-### TypeScript/React
+2. **IPC Handlers:**
+   - Modify `src/ipc/message_handler.py`
+   - Update event emitters in `src/ipc/event_emitter.py`
 
-- Use functional components with hooks
-- Use TypeScript strict mode
-- Follow React best practices
-- Use Material-UI components
-- Write unit tests for components
+3. **Configuration:**
+   - Update `src/config/config_manager.py`
+   - Changes require service restart
 
-**Example Component:**
-```typescript
-import React from 'react';
-import { Box, Typography } from '@mui/material';
+#### Tauri Changes
 
-interface TranscriptDisplayProps {
-  transcript: string;
-  confidence: number;
-}
+1. **Commands:**
+   - Edit command files in `src-tauri/src/commands/`
+   - Rebuild: `cargo build`
 
-export const TranscriptDisplay: React.FC<TranscriptDisplayProps> = ({
-  transcript,
-  confidence
-}) => {
-  return (
-    <Box>
-      <Typography variant="body1">{transcript}</Typography>
-      <Typography variant="caption">
-        Confidence: {(confidence * 100).toFixed(1)}%
-      </Typography>
-    </Box>
-  );
-};
-```
+2. **IPC Handlers:**
+   - Modify handlers in `src-tauri/src/handlers/`
+   - Rebuild required
 
-### Rust
+3. **Configuration:**
+   - Update `src-tauri/tauri.conf.json`
+   - Restart dev server
 
-- Follow Rust naming conventions
-- Use `Result` for error handling
-- Write documentation comments
-- Use `async/await` for async operations
-- Write unit tests
+### Testing Your Changes
 
-**Example Command:**
-```rust
-#[tauri::command]
-async fn start_recording(device_type: String) -> Result<String, String> {
-    // Validate input
-    if device_type != "microphone" && device_type != "speaker" {
-        return Err("Invalid device type".to_string());
-    }
-    
-    // Execute command
-    match execute_recording(&device_type).await {
-        Ok(_) => Ok("Recording started".to_string()),
-        Err(e) => Err(format!("Failed to start recording: {}", e))
-    }
-}
-```
-
-### Python
-
-- Follow PEP 8 style guide
-- Use type hints
-- Write docstrings
-- Use async/await where appropriate
-- Write unit tests
-
-**Example Service:**
-```python
-from typing import Optional
-import logging
-
-logger = logging.getLogger(__name__)
-
-class AudioRecorder:
-    """Audio recording service."""
-    
-    def __init__(self, device_type: str):
-        """Initialize audio recorder.
-        
-        Args:
-            device_type: Type of device ('microphone' or 'speaker')
-        """
-        self.device_type = device_type
-        self.is_recording = False
-    
-    async def start_recording(self) -> bool:
-        """Start audio recording.
-        
-        Returns:
-            True if recording started successfully
-            
-        Raises:
-            AudioDeviceError: If device is not available
-        """
-        try:
-            # Implementation
-            self.is_recording = True
-            logger.info(f"Started recording from {self.device_type}")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to start recording: {e}")
-            raise
-```
-
-## Testing
-
-### Frontend Tests
+#### Run All Tests
 
 ```bash
-cd frontend
-
-# Unit tests
-npm run test
-
-# Component tests
-npm run test:components
-
-# Integration tests
-npm run test:integration
-
-# E2E tests
-npm run test:e2e
-```
-
-### Backend Tests
-
-```bash
-cd backend
-
 # Unit tests
 pytest tests/unit/
 
@@ -351,186 +313,666 @@ pytest tests/integration/
 # Property-based tests
 pytest tests/property/
 
-# All tests with coverage
-pytest --cov=src tests/
+# Performance tests
+pytest tests/performance/
 ```
 
-### Tauri Tests
+#### Run Specific Test Suites
 
 ```bash
-cd src-tauri
+# Frontend-backend communication
+pytest tests/integration/test_frontend_backend_communication.py
 
-# Unit tests
-cargo test
+# Audio properties
+pytest tests/property/test_audio_properties.py
 
-# Integration tests
-cargo test --test '*'
+# Error handling
+pytest tests/unit/test_error_handling.py
 ```
 
-## Debugging
+#### Frontend Tests
+
+```bash
+cd frontend
+npm run test
+```
+
+#### Tauri Tests
+
+```bash
+cd backend-tauri
+cargo test
+```
+
+### Code Quality Checks
+
+#### Python
+
+```bash
+# Linting
+flake8 backend/ tests/
+
+# Type checking
+mypy backend/
+
+# Format checking
+black --check backend/ tests/
+```
+
+#### TypeScript
+
+```bash
+cd frontend
+
+# Linting
+npm run lint
+
+# Type checking
+npm run type-check
+
+# Format checking
+npm run format:check
+```
+
+#### Rust
+
+```bash
+cd backend-tauri
+
+# Linting
+cargo clippy
+
+# Format checking
+cargo fmt --check
+```
+
+### Building for Production
+
+#### Development Build
+
+```bash
+./dev.sh build
+```
+
+#### Production Build
+
+```bash
+# Full production build
+npm run tauri build
+
+# Platform-specific builds
+npm run tauri build -- --target x86_64-pc-windows-msvc  # Windows
+npm run tauri build -- --target x86_64-apple-darwin     # macOS Intel
+npm run tauri build -- --target aarch64-apple-darwin    # macOS Apple Silicon
+```
+
+Build artifacts are located in:
+- `src-tauri/target/release/bundle/`
+
+---
+
+## Debugging Tips
+
+### General Debugging Strategy
+
+1. **Identify the Layer:** Determine if the issue is in frontend, Tauri, or backend
+2. **Check Logs:** Review logs from all three layers
+3. **Isolate the Problem:** Test each layer independently
+4. **Use Debugging Tools:** Leverage browser DevTools, Rust debugger, Python debugger
 
 ### Frontend Debugging
 
-Use browser DevTools:
-1. Open app in development mode
-2. Right-click → Inspect Element
-3. Use Console, Network, and React DevTools
+#### Browser DevTools
+
+1. **Open DevTools:**
+   - In Tauri app: Right-click → Inspect Element
+   - Or press `Cmd+Option+I` (macOS) / `Ctrl+Shift+I` (Windows/Linux)
+
+2. **Console Tab:**
+   - View JavaScript errors and console.log output
+   - Check for Tauri command errors
+
+3. **Network Tab:**
+   - Monitor IPC communication (appears as internal requests)
+   - Check for failed requests
+
+4. **React DevTools:**
+   - Install React DevTools browser extension
+   - Inspect component hierarchy and state
+
+#### Common Frontend Issues
+
+**Issue: Tauri commands not working**
+```typescript
+// Check if running in Tauri context
+import { invoke } from '@tauri-apps/api/tauri';
+
+try {
+  const result = await invoke('command_name', { param: value });
+  console.log('Success:', result);
+} catch (error) {
+  console.error('Tauri command failed:', error);
+}
+```
+
+**Issue: State not updating**
+```typescript
+// Check Zustand store
+import { useAppStore } from './store/appStore';
+
+// In component
+const state = useAppStore();
+console.log('Current state:', state);
+```
+
+**Issue: Events not received**
+```typescript
+// Verify event listener
+import { listen } from '@tauri-apps/api/event';
+
+const unlisten = await listen('event-name', (event) => {
+  console.log('Event received:', event.payload);
+});
+
+// Don't forget to unlisten on cleanup
+return () => unlisten();
+```
 
 ### Backend Debugging
 
-Use Python debugger:
+#### Python Debugger
+
+1. **Using pdb:**
+   ```python
+   import pdb; pdb.set_trace()
+   ```
+
+2. **Using VS Code:**
+   - Create `.vscode/launch.json`:
+   ```json
+   {
+     "version": "0.2.0",
+     "configurations": [
+       {
+         "name": "Python: Backend Service",
+         "type": "python",
+         "request": "launch",
+         "program": "${workspaceFolder}/backend/backend_service.py",
+         "console": "integratedTerminal"
+       }
+     ]
+   }
+   ```
+
+#### Logging
+
+Enable debug logging:
+
 ```python
-import pdb; pdb.set_trace()
+# In backend/backend_service.py
+import logging
+logging.basicConfig(level=logging.DEBUG)
 ```
 
-Or use IDE debugger (VS Code, PyCharm)
-
-### Tauri Debugging
-
-Use Rust debugger:
+Check log files:
 ```bash
-# With lldb
-rust-lldb target/debug/deepecho
-
-# With gdb
-rust-gdb target/debug/deepecho
+tail -f logs/deepecho.log
+tail -f logs/transcription.log
 ```
 
-## Common Issues
+#### Common Backend Issues
 
-### Frontend Issues
-
-**Issue: Module not found**
+**Issue: IPC server not starting**
 ```bash
-cd frontend
-rm -rf node_modules package-lock.json
-npm install
-```
+# Check if port is already in use
+# On macOS/Linux:
+lsof -i :8765
 
-**Issue: Type errors**
-```bash
-npm run type-check
-```
-
-### Backend Issues
-
-**Issue: Import errors**
-```bash
-cd backend
-pip install -r requirements.txt --force-reinstall
+# On Windows:
+netstat -ano | findstr :8765
 ```
 
 **Issue: Audio device not found**
-- Check system audio settings
-- Verify device permissions
-- Install platform-specific audio libraries
+```python
+# List available devices
+python -c "import speech_recognition as sr; print(sr.Microphone.list_microphone_names())"
+```
 
-### Tauri Issues
+**Issue: AI provider errors**
+```python
+# Test provider directly
+python -c "from backend.ai.adapter import AIAdapter; adapter = AIAdapter(); print(adapter.get_response('test'))"
+```
 
-**Issue: Build fails**
+### Tauri Debugging
+
+#### Rust Debugging
+
+1. **Print Debugging:**
+   ```rust
+   println!("Debug: {:?}", variable);
+   eprintln!("Error: {:?}", error);
+   ```
+
+2. **Using rust-lldb (macOS/Linux):**
+   ```bash
+   rust-lldb target/debug/deepecho
+   ```
+
+3. **Using VS Code:**
+   - Install "CodeLLDB" extension
+   - Create `.vscode/launch.json`:
+   ```json
+   {
+     "version": "0.2.0",
+     "configurations": [
+       {
+         "type": "lldb",
+         "request": "launch",
+         "name": "Debug Tauri",
+         "cargo": {
+           "args": ["build", "--manifest-path=backend-tauri/Cargo.toml"]
+         }
+       }
+     ]
+   }
+   ```
+
+#### Tauri Logs
+
+Check Tauri console output:
 ```bash
-cd src-tauri
+# Run with verbose logging
+RUST_LOG=debug cargo tauri dev
+```
+
+#### Common Tauri Issues
+
+**Issue: Command not found**
+```rust
+// Verify command is registered in main.rs
+tauri::Builder::default()
+  .invoke_handler(tauri::generate_handler![
+    your_command_name
+  ])
+```
+
+**Issue: IPC communication failure**
+```rust
+// Check error handling
+#[tauri::command]
+async fn my_command() -> Result<String, String> {
+  match some_operation() {
+    Ok(result) => Ok(result),
+    Err(e) => {
+      eprintln!("Error: {:?}", e);
+      Err(format!("Operation failed: {}", e))
+    }
+  }
+}
+```
+
+### Cross-Layer Debugging
+
+#### Trace Request Flow
+
+1. **Frontend → Tauri:**
+   ```typescript
+   console.log('Calling command:', commandName, params);
+   const result = await invoke(commandName, params);
+   console.log('Command result:', result);
+   ```
+
+2. **Tauri → Backend:**
+   ```rust
+   println!("Forwarding to backend: {:?}", request);
+   let response = forward_to_backend(request).await;
+   println!("Backend response: {:?}", response);
+   ```
+
+3. **Backend Processing:**
+   ```python
+   logger.debug(f"Received request: {request}")
+   result = process_request(request)
+   logger.debug(f"Sending response: {result}")
+   ```
+
+#### Network Debugging
+
+Monitor IPC communication:
+
+```bash
+# On macOS/Linux:
+sudo tcpdump -i lo0 -A port 8765
+
+# On Windows:
+# Use Wireshark with loopback adapter
+```
+
+### Performance Debugging
+
+#### Frontend Performance
+
+```typescript
+// Measure render time
+console.time('component-render');
+// ... component code
+console.timeEnd('component-render');
+
+// Profile with React DevTools Profiler
+import { Profiler } from 'react';
+
+<Profiler id="MyComponent" onRender={onRenderCallback}>
+  <MyComponent />
+</Profiler>
+```
+
+#### Backend Performance
+
+```python
+import time
+
+start = time.time()
+# ... operation
+elapsed = time.time() - start
+logger.info(f"Operation took {elapsed:.2f}s")
+```
+
+#### Memory Profiling
+
+```bash
+# Python memory profiling
+pip install memory_profiler
+python -m memory_profiler backend/backend_service.py
+```
+
+---
+
+## Common Issues and Solutions
+
+### Installation Issues
+
+#### Issue: Rust compilation fails
+
+**Solution:**
+```bash
+# Update Rust
+rustup update
+
+# Clean and rebuild
+cd backend-tauri
 cargo clean
 cargo build
 ```
 
-**Issue: IPC communication fails**
-- Check backend service is running
-- Verify IPC message format
-- Check logs for errors
+#### Issue: Python dependencies fail to install
 
-## Performance Profiling
-
-### Frontend Profiling
-
-Use React DevTools Profiler:
-1. Open React DevTools
-2. Go to Profiler tab
-3. Start recording
-4. Perform actions
-5. Stop recording and analyze
-
-### Backend Profiling
-
-Use Python profiler:
-```python
-import cProfile
-import pstats
-
-profiler = cProfile.Profile()
-profiler.enable()
-
-# Your code here
-
-profiler.disable()
-stats = pstats.Stats(profiler)
-stats.sort_stats('cumulative')
-stats.print_stats()
-```
-
-### Tauri Profiling
-
-Use Rust profiler:
+**Solution:**
 ```bash
-cargo install flamegraph
-cargo flamegraph
+# Upgrade pip
+pip install --upgrade pip
+
+# Install with verbose output
+pip install -r requirements.txt -v
+
+# On Windows, install Visual C++ Build Tools
+# Download from: https://visualstudio.microsoft.com/visual-cpp-build-tools/
 ```
 
-## Git Workflow
+#### Issue: Node modules installation fails
 
-### Branch Naming
+**Solution:**
+```bash
+cd frontend
 
-- `feature/feature-name`: New features
-- `fix/bug-description`: Bug fixes
-- `refactor/component-name`: Refactoring
-- `docs/topic`: Documentation updates
+# Clear cache
+npm cache clean --force
 
-### Commit Messages
+# Remove node_modules
+rm -rf node_modules package-lock.json
 
-Follow conventional commits:
-```
-feat: add audio device selection
-fix: resolve memory leak in transcriber
-docs: update API documentation
-refactor: simplify command handlers
-test: add property tests for IPC
+# Reinstall
+npm install
 ```
 
-### Pull Request Process
+### Runtime Issues
 
-1. Create feature branch
-2. Make changes and commit
-3. Write tests
-4. Update documentation
-5. Create pull request
-6. Address review comments
-7. Merge when approved
+#### Issue: Application won't start
 
-## Code Review Checklist
+**Checklist:**
+1. Is Python backend running? Check `ps aux | grep backend_service`
+2. Are ports available? Check `lsof -i :8765`
+3. Are API keys configured? Check `keys.py`
+4. Is config valid? Check `resources/config.json`
 
-- [ ] Code follows style guidelines
-- [ ] Tests are included and passing
-- [ ] Documentation is updated
-- [ ] No console.log or debug statements
-- [ ] Error handling is comprehensive
-- [ ] Performance is acceptable
-- [ ] Security considerations addressed
+#### Issue: Audio not capturing
 
-## Resources
+**Windows:**
+```bash
+# Check WASAPI loopback device
+python -c "import pyaudiowpatch as pyaudio; p = pyaudio.PyAudio(); print([p.get_device_info_by_index(i) for i in range(p.get_device_count())])"
+```
 
-- [Tauri Documentation](https://tauri.app/)
+**macOS:**
+```bash
+# Check BlackHole installation
+brew list blackhole-2ch
+
+# Verify audio routing in System Preferences → Sound
+```
+
+#### Issue: AI responses not generating
+
+**Solution:**
+
+```python
+# Test AI provider
+python - c
+"
+from backend.ai.adapter import AIAdapter
+
+adapter = AIAdapter()
+adapter.switch_provider('openai')  # or your provider
+response = adapter.get_response('Hello')
+print(response)
+"
+```
+
+### Build Issues
+
+#### Issue: Tauri build fails
+
+**Solution:**
+```bash
+# Check Tauri configuration
+cat backend-tauri/tauri.conf.json
+
+# Verify all dependencies
+cargo check
+
+# Build with verbose output
+cargo build --verbose
+```
+
+#### Issue: Frontend build fails
+
+**Solution:**
+```bash
+cd frontend
+
+# Check TypeScript errors
+npm run type-check
+
+# Build with verbose output
+npm run build -- --verbose
+```
+
+---
+
+## Best Practices
+
+### Code Organization
+
+1. **Frontend:**
+   - Keep components small and focused
+   - Use custom hooks for reusable logic
+   - Separate business logic from UI
+   - Use TypeScript strictly (no `any` types)
+
+2. **Backend:**
+   - Follow Python PEP 8 style guide
+   - Use type hints
+   - Keep functions pure when possible
+   - Handle errors explicitly
+
+3. **Tauri:**
+   - Keep commands simple and focused
+   - Use proper error types
+   - Document command parameters
+   - Follow Rust conventions
+
+### Git Workflow
+
+1. **Branch Naming:**
+   ```
+   feature/add-new-component
+   fix/audio-capture-bug
+   refactor/improve-performance
+   ```
+
+2. **Commit Messages:**
+   ```
+   feat: Add audio visualization component
+   fix: Resolve IPC timeout issue
+   refactor: Simplify state management
+   docs: Update development guide
+   ```
+
+3. **Before Committing:**
+   ```bash
+   # Run tests
+   pytest tests/
+   
+   # Check code quality
+   npm run lint
+   cargo clippy
+   
+   # Format code
+   black backend/ tests/
+   npm run format
+   cargo fmt
+   ```
+
+### Testing Strategy
+
+1. **Write tests first** (TDD when possible)
+2. **Test at appropriate level:**
+   - Unit tests for pure functions
+   - Integration tests for workflows
+   - Property tests for invariants
+3. **Mock external dependencies**
+4. **Keep tests fast and focused**
+
+### Performance Optimization
+
+1. **Frontend:**
+   - Use React.memo for expensive components
+   - Implement virtual scrolling for large lists
+   - Debounce user input
+   - Lazy load components
+
+2. **Backend:**
+   - Use async/await for I/O operations
+   - Implement caching where appropriate
+   - Profile before optimizing
+   - Monitor memory usage
+
+3. **IPC:**
+   - Batch events when possible
+   - Use efficient serialization
+   - Implement request throttling
+   - Handle backpressure
+
+### Security Considerations
+
+1. **API Keys:**
+   - Never commit `keys.py`
+   - Use environment variables in production
+   - Rotate keys regularly
+
+2. **File Access:**
+   - Validate all file paths
+   - Use Tauri's file system API
+   - Implement proper permissions
+
+3. **Input Validation:**
+   - Validate all user input
+   - Sanitize data before processing
+   - Use type checking
+
+### Documentation
+
+1. **Code Comments:**
+   - Explain "why", not "what"
+   - Document complex algorithms
+   - Keep comments up to date
+
+2. **API Documentation:**
+   - Document all public functions
+   - Include examples
+   - Specify error conditions
+
+3. **Architecture Decisions:**
+   - Document major decisions
+   - Explain trade-offs
+   - Update when changes occur
+
+---
+
+## Additional Resources
+
+### Official Documentation
+
+- [Tauri Documentation](https://tauri.app/v1/guides/)
 - [React Documentation](https://react.dev/)
 - [Material-UI Documentation](https://mui.com/)
-- [Rust Documentation](https://www.rust-lang.org/)
-- [Python Documentation](https://www.python.org/)
+- [Rust Book](https://doc.rust-lang.org/book/)
+- [Python Documentation](https://docs.python.org/3/)
+
+### Project Documentation
+
+- [Architecture Overview](./architecture.md)
+- [API Reference](./api.md)
+- [Protocol Specification](./protocol.md)
+- [Deployment Guide](./deployment.md)
+
+### Community
+
+- GitHub Issues: Report bugs and request features
+- Discussions: Ask questions and share ideas
+- Contributing: See CONTRIBUTING.md for guidelines
+
+---
 
 ## Getting Help
 
-- Check existing documentation
-- Search GitHub issues
-- Ask in project discussions
-- Contact maintainers
+If you encounter issues not covered in this guide:
 
-## Contributing
+1. **Check existing documentation** in the `docs/` directory
+2. **Search GitHub issues** for similar problems
+3. **Run diagnostic scripts:**
+   ```bash
+   ./dev.sh check
+   python check_system.py
+   ```
+4. **Enable debug logging** and review logs
+5. **Create a GitHub issue** with:
+   - Clear description of the problem
+   - Steps to reproduce
+   - Error messages and logs
+   - System information (OS, versions)
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for detailed contribution guidelines.
+---
+
+**Last Updated:** January 2026
+**Version:** 1.0.0
