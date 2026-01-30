@@ -11,7 +11,7 @@
   },
   "ai_provider": {
     "provider_type": "deepseek",
-    "api_key": "",
+    "api_key": "your-deepseek-api-key-here",
     "model": "deepseek-chat",
     "base_url": "https://api.deepseek.com",
     "timeout": 30,
@@ -29,6 +29,7 @@
     "level": "INFO",
     "file": "deepecho.log",
     "max_size": "10MB",
+    "console_enabled": true,
     "backup_count": 5
   },
   "performance": {

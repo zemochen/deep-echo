@@ -201,7 +201,21 @@ export function useTranscript(
       setError(null);
 
       const transcript = await getTranscript();
-      addTranscript(transcript);
+
+      // 跳过空 transcript（避免 React Strict Mode 导致的重复添加）
+      const isEmptyTranscript = transcript.text.trim() === "" && transcript.confidence === 0.0;
+      if (isEmptyTranscript) {
+        console.log('ℹ️ Skipping empty transcript from backend');
+        return;
+      }
+
+      // 检查是否已经存在相同的 transcript
+      const exists = transcripts.some(t => t.id === transcript.id);
+      if (!exists) {
+        addTranscript(transcript);
+      } else {
+        console.log('ℹ️ Transcript already exists, skipping duplicate load');
+      }
     } catch (err) {
       // 如果 backend 未启动，静默失败而不是抛出错误
       const errorMessage = err instanceof Error ? err.message : 'Failed to load transcript';
@@ -218,7 +232,7 @@ export function useTranscript(
     } finally {
       setIsLoading(false);
     }
-  }, [addTranscript, onError]);
+  }, [transcripts, addTranscript, onError]);
 
   /**
    * Clear all transcripts

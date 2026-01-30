@@ -17,6 +17,7 @@ import {
 import type { TranscriptData, ResponseData, SystemStatus } from './types';
 import { useTranscript } from './hooks';
 import { useResponse } from './hooks';
+import { useAudioRecording } from './hooks';
 import { useAppStore } from './store/appStore';
 
 // Check if we're in Tauri environment by trying to access invoke directly
@@ -93,11 +94,44 @@ function App() {
     }
   });
 
+  // ✅ 使用 useAudioRecording hook
+  const {
+    isRecording,
+    isLoading: isLoadingRecording,
+    startRecording,
+    stopRecording,
+    devices,
+    loadDevices,
+    error: recordingError
+  } = useAudioRecording({
+    enableVisualization: false,
+    onRecordingStart: (deviceType) => {
+      console.log(`🎤 开始录音: ${deviceType}`);
+      setStatus({ state: 'recording', message: `Recording from ${deviceType}` });
+    },
+    onRecordingStop: () => {
+      console.log('⏹️ 停止录音');
+      setStatus({ state: 'idle', message: 'Recording stopped' });
+    },
+    onError: (error) => {
+      console.error('❌ 录音错误:', error);
+      setStatus({ state: 'error', message: `Recording error: ${error.message}` });
+    }
+  });
+
   // ✅ 从 Zustand store 获取状态
   const [status, setStatus] = useState<SystemStatus>({
     state: 'idle',
     message: 'System is ready',
   });
+
+  // ✅ 自动启动录音（实时语音转录应用）
+  useEffect(() => {
+    if (IS_TAURI_ENV && !isRecording && !isLoadingRecording) {
+      console.log('🎤 自动启动录音（实时语音转录）...');
+      startRecording('microphone');
+    }
+  }, [IS_TAURI_ENV, isRecording, isLoadingRecording, startRecording]);
 
   // ✅ 使用 store 的 clear 方法
   const clearAllData = () => {
@@ -229,21 +263,21 @@ function App() {
                     </Typography>
                     <StatusIndicator status={status} />
                   </Paper>
-                </Grid>
+                 </Grid>
 
-                {/* Control Panel */}
-                <Grid size={{ xs: 12 }}>
+                 {/* Control Panel */}
+                 <Grid size={{ xs: 12 }}>
                   <Paper elevation={2} sx={{ p: 3 }}>
                     <Typography variant="h6" gutterBottom>
                       Controls
                     </Typography>
-                    <ControlPanel
-                      frozen={frozen}
-                      updateInterval={updateInterval}
-                      onToggleFreeze={handleToggleFreeze}
-                      onUpdateIntervalChange={handleUpdateIntervalChange}
-                      onClearContext={handleClearContext}
-                    />
+                     <ControlPanel
+                       frozen={frozen}
+                       updateInterval={updateInterval}
+                       onToggleFreeze={() => setFrozen(!frozen)}
+                       onUpdateIntervalChange={setUpdateInterval}
+                       onClearContext={clearAllData}
+                     />
                   </Paper>
                 </Grid>
 

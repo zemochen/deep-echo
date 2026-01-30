@@ -13,7 +13,6 @@ from typing import Any, Optional, Callable, Dict, List, Tuple, Union
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 from enum import Enum
-import psutil
 
 from .logger import get_logger
 from .threading import ThreadSafeCounter, ThreadSafeDict

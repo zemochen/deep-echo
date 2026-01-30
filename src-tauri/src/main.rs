@@ -90,10 +90,10 @@ fn main() {
             // Initialize Python service
             let python_config = PythonServiceConfig {
                 python_path: "python3".to_string(),
-                // Path relative to working_dir (which is set to project root)
-                service_script: "backend/backend_service.py".to_string(),
-                // Set working directory to project root for correct relative paths
-                working_dir: Some("..".to_string()),
+                // Path relative to working_dir
+                service_script: "backend_service.py".to_string(),
+                // Set working directory to backend directory
+                working_dir: Some("../backend".to_string()),
                 env_vars: Vec::new(),
                 startup_timeout: 30,
                 health_check_interval: 10,
@@ -101,6 +101,16 @@ fn main() {
                 restart_delay: 5,
             };
             let python_service_state = PythonServiceState::new(python_config);
+
+            // Auto-start Python service
+            {
+                let service = python_service_state.get_service();
+                match service.start() {
+                    Ok(_) => println!("✓ Python service auto-started successfully"),
+                    Err(e) => eprintln!("✗ Failed to auto-start Python service: {}", e),
+                }
+            }
+
             app.manage(python_service_state);
 
             Ok(())
