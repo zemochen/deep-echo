@@ -1,4 +1,11 @@
-import aifc
+try:
+    import aifc
+    AIFC_AVAILABLE = True
+except ImportError:
+    # aifc was removed in Python 3.13
+    AIFC_AVAILABLE = False
+    aifc = None
+
 import audioop
 import io
 import os
@@ -194,6 +201,9 @@ class AudioData(object):
             )
 
         # generate the AIFF-C file contents
+        if not AIFC_AVAILABLE:
+            raise RuntimeError("AIFF format is not supported in Python 3.13+. Please use WAV format instead.")
+        
         with io.BytesIO() as aiff_file:
             aiff_writer = aifc.open(aiff_file, "wb")
             try:  # note that we can't use context manager, since that was only added in Python 3.4

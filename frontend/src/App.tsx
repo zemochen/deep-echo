@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import * as React from 'react';
 import { ThemeProvider, CssBaseline, Box, Container, AppBar, Toolbar, Typography, Grid, Paper, Stack, Alert, AlertTitle } from '@mui/material';
 import { theme } from './theme/theme';
 import {
@@ -97,7 +98,7 @@ function App() {
   // ✅ 使用 useAudioRecording hook
   const {
     isRecording,
-    isLoading: isLoadingRecording,
+    isLoadingDevices,
     startRecording,
     stopRecording,
     devices,
@@ -126,12 +127,21 @@ function App() {
   });
 
   // ✅ 自动启动录音（实时语音转录应用）
+  // 使用 ref 来跟踪是否已经尝试启动录音，避免重复启动
+  const hasAttemptedStart = React.useRef(false);
+  
   useEffect(() => {
-    if (IS_TAURI_ENV && !isRecording && !isLoadingRecording) {
+    if (IS_TAURI_ENV && !isRecording && !hasAttemptedStart.current) {
       console.log('🎤 自动启动录音（实时语音转录）...');
-      startRecording('microphone');
+      hasAttemptedStart.current = true;
+      startRecording('microphone').catch((error) => {
+        console.error('Failed to auto-start recording:', error);
+        hasAttemptedStart.current = false; // 允许重试
+      });
     }
-  }, [IS_TAURI_ENV, isRecording, isLoadingRecording, startRecording]);
+    // 注意：不要将startRecording放入依赖数组，否则会导致无限循环
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [IS_TAURI_ENV, isRecording]);
 
   // ✅ 使用 store 的 clear 方法
   const clearAllData = () => {

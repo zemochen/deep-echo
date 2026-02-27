@@ -8,7 +8,13 @@ import tempfile
 import sys
 import subprocess
 import wave
-import aifc
+try:
+    import aifc
+    AIFC_AVAILABLE = True
+except ImportError:
+    # aifc was removed in Python 3.13
+    AIFC_AVAILABLE = False
+    aifc = None
 import math
 import audioop
 import collections
@@ -258,38 +264,47 @@ class AudioFile(AudioSource):
             self.audio_reader = wave.open(self.filename_or_fileobject, "rb")
             self.little_endian = True  # RIFF WAV is a little-endian format (most ``audioop`` operations assume that the frames are stored in little-endian form)
         except (wave.Error, EOFError):
-            try:
-                # attempt to read the file as AIFF
-                self.audio_reader = aifc.open(self.filename_or_fileobject, "rb")
-                self.little_endian = False  # AIFF is a big-endian format
-            except (aifc.Error, EOFError):
-                # attempt to read the file as FLAC
-                if hasattr(self.filename_or_fileobject, "read"):
-                    flac_data = self.filename_or_fileobject.read()
-                else:
-                    with open(self.filename_or_fileobject, "rb") as f: flac_data = f.read()
-
-                # run the FLAC converter with the FLAC data to get the AIFF data
-                flac_converter = get_flac_converter()
-                if os.name == "nt":  # on Windows, specify that the process is to be started without showing a console window
-                    startup_info = subprocess.STARTUPINFO()
-                    startup_info.dwFlags |= subprocess.STARTF_USESHOWWINDOW  # specify that the wShowWindow field of `startup_info` contains a value
-                    startup_info.wShowWindow = subprocess.SW_HIDE  # specify that the console window should be hidden
-                else:
-                    startup_info = None  # default startupinfo
-                process = subprocess.Popen([
-                    flac_converter,
-                    "--stdout", "--totally-silent",  # put the resulting AIFF file in stdout, and make sure it's not mixed with any program output
-                    "--decode", "--force-aiff-format",  # decode the FLAC file into an AIFF file
-                    "-",  # the input FLAC file contents will be given in stdin
-                ], stdin=subprocess.PIPE, stdout=subprocess.PIPE, startupinfo=startup_info)
-                aiff_data, _ = process.communicate(flac_data)
-                aiff_file = io.BytesIO(aiff_data)
+            if AIFC_AVAILABLE:
                 try:
-                    self.audio_reader = aifc.open(aiff_file, "rb")
+                    # attempt to read the file as AIFF
+                    self.audio_reader = aifc.open(self.filename_or_fileobject, "rb")
+                    self.little_endian = False  # AIFF is a big-endian format
                 except (aifc.Error, EOFError):
-                    raise ValueError("Audio file could not be read as PCM WAV, AIFF/AIFF-C, or Native FLAC; check if file is corrupted or in another format")
-                self.little_endian = False  # AIFF is a big-endian format
+                    pass  # will try FLAC next
+                else:
+                    # Successfully opened as AIFF
+                    assert 1 <= self.audio_reader.getnchannels() <= 2, "Audio must be mono or stereo"
+                    self.SAMPLE_WIDTH = self.audio_reader.getsampwidth()
+                    return self
+            
+            # attempt to read the file as FLAC
+            if hasattr(self.filename_or_fileobject, "read"):
+                flac_data = self.filename_or_fileobject.read()
+            else:
+                with open(self.filename_or_fileobject, "rb") as f: flac_data = f.read()
+
+            # run the FLAC converter with the FLAC data to get the WAV data (not AIFF, since aifc is deprecated)
+            flac_converter = get_flac_converter()
+            if os.name == "nt":  # on Windows, specify that the process is to be started without showing a console window
+                startup_info = subprocess.STARTUPINFO()
+                startup_info.dwFlags |= subprocess.STARTF_USESHOWWINDOW  # specify that the wShowWindow field of `startup_info` contains a value
+                startup_info.wShowWindow = subprocess.SW_HIDE  # specify that the console window should be hidden
+            else:
+                startup_info = None  # default startupinfo
+            process = subprocess.Popen([
+                flac_converter,
+                "--stdout", "--totally-silent",  # put the resulting WAV file in stdout, and make sure it's not mixed with any program output
+                "--decode",  # decode the FLAC file into a WAV file
+                "-",  # the input FLAC file contents will be given in stdin
+            ], stdin=subprocess.PIPE, stdout=subprocess.PIPE, startupinfo=startup_info)
+            wav_data, _ = process.communicate(flac_data)
+            wav_file = io.BytesIO(wav_data)
+            try:
+                self.audio_reader = wave.open(wav_file, "rb")
+                self.little_endian = True  # WAV is a little-endian format
+            except (wave.Error, EOFError):
+                raise ValueError("Audio file could not be read as PCM WAV or Native FLAC; check if file is corrupted or in another format")
+        
         assert 1 <= self.audio_reader.getnchannels() <= 2, "Audio must be mono or stereo"
         self.SAMPLE_WIDTH = self.audio_reader.getsampwidth()
 
