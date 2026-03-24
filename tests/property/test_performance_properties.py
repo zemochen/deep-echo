@@ -29,15 +29,15 @@ from unittest.mock import Mock, patch, MagicMock
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Any
 
-from src.utils.threading import (
+from backend.utils.threading import (
     ThreadManager, ManagedThread, ThreadState, ThreadPriority,
     ThreadSafeCounter, ThreadSafeDict, get_thread_manager
 )
-from src.utils.queue_manager import (
+from backend.utils.queue_manager import (
     QueueManager, ManagedQueue, QueueType, QueueState,
     get_queue_manager, create_managed_queue
 )
-from src.utils.resource_optimizer import (
+from backend.utils.resource_optimizer import (
     ResourceOptimizer, ResourceMonitor, MemoryOptimizer,
     OptimizationLevel, ResourceType, ResourceUsage,
     get_resource_optimizer

@@ -199,13 +199,13 @@ def run_test():
     
     try:
         # Test imports
-        import src.config.config_manager
-        import src.ai.adapter
-        import src.audio.recorder
+        import backend.config.config_manager
+        import backend.ai.adapter
+        import backend.audio.recorder
         print("✅ Core modules import successfully")
         
         # Test configuration loading
-        from src.config.config_manager import get_config_manager
+        from backend.config.config_manager import get_config_manager
         config_manager = get_config_manager()
         config = config_manager.load_config()
         print("✅ Configuration loads successfully")

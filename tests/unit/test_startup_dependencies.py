@@ -13,7 +13,7 @@ import shutil
 from unittest.mock import patch, MagicMock, call
 from pathlib import Path
 
-from src.config.settings import REQUIRED_DEPENDENCIES, ERROR_MESSAGES
+from backend.config.settings import REQUIRED_DEPENDENCIES, ERROR_MESSAGES
 
 
 class TestDependencyValidation(unittest.TestCase):
@@ -35,7 +35,7 @@ class TestDependencyValidation(unittest.TestCase):
         mock_process.returncode = 0
         mock_run.return_value = mock_process
         
-        from src.main import DeepEchoApplication
+        from backend.main import DeepEchoApplication
         app = DeepEchoApplication()
         
         success, message = app.validate_dependencies()
@@ -55,7 +55,7 @@ class TestDependencyValidation(unittest.TestCase):
         # Mock FileNotFoundError (FFmpeg not found)
         mock_run.side_effect = FileNotFoundError()
         
-        from src.main import DeepEchoApplication
+        from backend.main import DeepEchoApplication
         app = DeepEchoApplication()
         
         success, message = app.validate_dependencies()
@@ -69,7 +69,7 @@ class TestDependencyValidation(unittest.TestCase):
         # Mock subprocess timeout
         mock_run.side_effect = subprocess.TimeoutExpired("ffmpeg", 10)
         
-        from src.main import DeepEchoApplication
+        from backend.main import DeepEchoApplication
         app = DeepEchoApplication()
         
         success, message = app.validate_dependencies()
@@ -85,7 +85,7 @@ class TestDependencyValidation(unittest.TestCase):
         mock_process.returncode = 1
         mock_run.return_value = mock_process
         
-        from src.main import DeepEchoApplication
+        from backend.main import DeepEchoApplication
         app = DeepEchoApplication()
         
         success, message = app.validate_dependencies()
@@ -95,7 +95,7 @@ class TestDependencyValidation(unittest.TestCase):
     
     def test_python_version_validation(self):
         """Test Python version validation."""
-        from src.main import DeepEchoApplication
+        from backend.main import DeepEchoApplication
         app = DeepEchoApplication()
         
         # Current Python version should be >= 3.8
@@ -124,7 +124,7 @@ class TestDependencyValidation(unittest.TestCase):
         
         mock_import.side_effect = import_side_effect
         
-        from src.main import DeepEchoApplication
+        from backend.main import DeepEchoApplication
         app = DeepEchoApplication()
         
         success, message = app.validate_dependencies()
@@ -144,12 +144,12 @@ class TestSystemInitialization(unittest.TestCase):
         """Clean up test fixtures."""
         shutil.rmtree(self.temp_dir, ignore_errors=True)
     
-    @patch('src.main.DeepEchoApplication.validate_dependencies')
-    @patch('src.main.DeepEchoApplication.load_configuration')
-    @patch('src.main.DeepEchoApplication.initialize_audio_system')
-    @patch('src.main.DeepEchoApplication.initialize_transcription')
-    @patch('src.main.DeepEchoApplication.initialize_ai_system')
-    @patch('src.main.DeepEchoApplication.initialize_ui')
+    @patch('backend.main.DeepEchoApplication.validate_dependencies')
+    @patch('backend.main.DeepEchoApplication.load_configuration')
+    @patch('backend.main.DeepEchoApplication.initialize_audio_system')
+    @patch('backend.main.DeepEchoApplication.initialize_transcription')
+    @patch('backend.main.DeepEchoApplication.initialize_ai_system')
+    @patch('backend.main.DeepEchoApplication.initialize_ui')
     def test_successful_initialization_sequence(self, mock_ui, mock_ai, mock_transcription, 
                                               mock_audio, mock_config, mock_deps):
         """Test successful system initialization sequence."""
@@ -161,7 +161,7 @@ class TestSystemInitialization(unittest.TestCase):
         mock_ai.return_value = True
         mock_ui.return_value = True
         
-        from src.main import DeepEchoApplication
+        from backend.main import DeepEchoApplication
         app = DeepEchoApplication()
         
         # Mock main window to avoid GUI
@@ -181,13 +181,13 @@ class TestSystemInitialization(unittest.TestCase):
         mock_ai.assert_called_once()
         mock_ui.assert_called_once()
     
-    @patch('src.main.DeepEchoApplication.validate_dependencies')
+    @patch('backend.main.DeepEchoApplication.validate_dependencies')
     def test_initialization_fails_on_dependency_error(self, mock_deps):
         """Test initialization failure when dependencies are invalid."""
         # Mock dependency validation failure
         mock_deps.return_value = (False, "FFmpeg not found")
         
-        from src.main import DeepEchoApplication
+        from backend.main import DeepEchoApplication
         app = DeepEchoApplication()
         
         with patch.object(app, 'cleanup'):
@@ -196,15 +196,15 @@ class TestSystemInitialization(unittest.TestCase):
         # Should return error (1)
         self.assertEqual(result, 1)
     
-    @patch('src.main.DeepEchoApplication.validate_dependencies')
-    @patch('src.main.DeepEchoApplication.load_configuration')
+    @patch('backend.main.DeepEchoApplication.validate_dependencies')
+    @patch('backend.main.DeepEchoApplication.load_configuration')
     def test_initialization_fails_on_config_error(self, mock_config, mock_deps):
         """Test initialization failure when configuration loading fails."""
         # Mock successful dependencies but failed config
         mock_deps.return_value = (True, "Dependencies OK")
         mock_config.return_value = False
         
-        from src.main import DeepEchoApplication
+        from backend.main import DeepEchoApplication
         app = DeepEchoApplication()
         
         with patch.object(app, 'cleanup'):
@@ -213,9 +213,9 @@ class TestSystemInitialization(unittest.TestCase):
         # Should return error (1)
         self.assertEqual(result, 1)
     
-    @patch('src.main.DeepEchoApplication.validate_dependencies')
-    @patch('src.main.DeepEchoApplication.load_configuration')
-    @patch('src.main.DeepEchoApplication.initialize_audio_system')
+    @patch('backend.main.DeepEchoApplication.validate_dependencies')
+    @patch('backend.main.DeepEchoApplication.load_configuration')
+    @patch('backend.main.DeepEchoApplication.initialize_audio_system')
     def test_initialization_fails_on_audio_error(self, mock_audio, mock_config, mock_deps):
         """Test initialization failure when audio system fails."""
         # Mock successful dependencies and config but failed audio
@@ -223,7 +223,7 @@ class TestSystemInitialization(unittest.TestCase):
         mock_config.return_value = True
         mock_audio.return_value = False
         
-        from src.main import DeepEchoApplication
+        from backend.main import DeepEchoApplication
         app = DeepEchoApplication()
         
         with patch.object(app, 'cleanup'):
@@ -234,7 +234,7 @@ class TestSystemInitialization(unittest.TestCase):
     
     def test_cleanup_on_exception(self):
         """Test that cleanup is called when an exception occurs."""
-        from src.main import DeepEchoApplication
+        from backend.main import DeepEchoApplication
         app = DeepEchoApplication()
         
         # Mock an exception during initialization
@@ -249,7 +249,7 @@ class TestSystemInitialization(unittest.TestCase):
     def test_signal_handler_cleanup(self):
         """Test that signal handlers trigger cleanup."""
         import signal
-        from src.main import DeepEchoApplication
+        from backend.main import DeepEchoApplication
         
         app = DeepEchoApplication()
         
@@ -273,8 +273,8 @@ class TestAudioSystemInitialization(unittest.TestCase):
         """Clean up test fixtures."""
         shutil.rmtree(self.temp_dir, ignore_errors=True)
     
-    @patch('src.main.LEGACY_AVAILABLE', True)
-    @patch('src.main.LegacyAudioRecorder')
+    @patch('backend.main.LEGACY_AVAILABLE', True)
+    @patch('backend.main.LegacyAudioRecorder')
     @patch('time.sleep')
     def test_legacy_audio_initialization(self, mock_sleep, mock_audio_recorder):
         """Test legacy audio system initialization."""
@@ -284,7 +284,7 @@ class TestAudioSystemInitialization(unittest.TestCase):
         mock_audio_recorder.DefaultMicRecorder.return_value = mock_mic_recorder
         mock_audio_recorder.DefaultSpeakerRecorder.return_value = mock_speaker_recorder
         
-        from src.main import DeepEchoApplication
+        from backend.main import DeepEchoApplication
         app = DeepEchoApplication()
         
         success = app.initialize_audio_system()
@@ -296,24 +296,24 @@ class TestAudioSystemInitialization(unittest.TestCase):
         mock_speaker_recorder.record_into_queue.assert_called_once()
         mock_sleep.assert_called_once_with(2)
     
-    @patch('src.main.LEGACY_AVAILABLE', False)
+    @patch('backend.main.LEGACY_AVAILABLE', False)
     def test_audio_initialization_no_legacy(self):
         """Test audio initialization when legacy system is not available."""
-        from src.main import DeepEchoApplication
+        from backend.main import DeepEchoApplication
         app = DeepEchoApplication()
         
         success = app.initialize_audio_system()
         
         self.assertFalse(success)
     
-    @patch('src.main.LEGACY_AVAILABLE', True)
-    @patch('src.main.LegacyAudioRecorder')
+    @patch('backend.main.LEGACY_AVAILABLE', True)
+    @patch('backend.main.LegacyAudioRecorder')
     def test_audio_initialization_exception(self, mock_audio_recorder):
         """Test audio initialization exception handling."""
         # Mock exception during audio recorder creation
         mock_audio_recorder.DefaultMicRecorder.side_effect = Exception("Audio error")
         
-        from src.main import DeepEchoApplication
+        from backend.main import DeepEchoApplication
         app = DeepEchoApplication()
         
         success = app.initialize_audio_system()
@@ -332,9 +332,9 @@ class TestTranscriptionInitialization(unittest.TestCase):
         """Clean up test fixtures."""
         shutil.rmtree(self.temp_dir, ignore_errors=True)
     
-    @patch('src.main.LEGACY_AVAILABLE', True)
-    @patch('src.main.TranscriberModels')
-    @patch('src.main.LegacyAudioTranscriber')
+    @patch('backend.main.LEGACY_AVAILABLE', True)
+    @patch('backend.main.TranscriberModels')
+    @patch('backend.main.LegacyAudioTranscriber')
     @patch('threading.Thread')
     def test_transcription_initialization_success(self, mock_thread, mock_transcriber, mock_models):
         """Test successful transcription initialization."""
@@ -346,7 +346,7 @@ class TestTranscriptionInitialization(unittest.TestCase):
         mock_thread_instance = MagicMock()
         mock_thread.return_value = mock_thread_instance
         
-        from src.main import DeepEchoApplication
+        from backend.main import DeepEchoApplication
         app = DeepEchoApplication()
         
         # Mock audio recorders
@@ -361,24 +361,24 @@ class TestTranscriptionInitialization(unittest.TestCase):
         mock_thread.assert_called_once()
         mock_thread_instance.start.assert_called_once()
     
-    @patch('src.main.LEGACY_AVAILABLE', False)
+    @patch('backend.main.LEGACY_AVAILABLE', False)
     def test_transcription_initialization_no_legacy(self):
         """Test transcription initialization when legacy system is not available."""
-        from src.main import DeepEchoApplication
+        from backend.main import DeepEchoApplication
         app = DeepEchoApplication()
         
         success = app.initialize_transcription()
         
         self.assertFalse(success)
     
-    @patch('src.main.LEGACY_AVAILABLE', True)
-    @patch('src.main.TranscriberModels')
+    @patch('backend.main.LEGACY_AVAILABLE', True)
+    @patch('backend.main.TranscriberModels')
     def test_transcription_initialization_exception(self, mock_models):
         """Test transcription initialization exception handling."""
         # Mock exception during model loading
         mock_models.get_model.side_effect = Exception("Model error")
         
-        from src.main import DeepEchoApplication
+        from backend.main import DeepEchoApplication
         app = DeepEchoApplication()
         
         success = app.initialize_transcription()
@@ -396,7 +396,7 @@ class TestCommandLineArguments(unittest.TestCase):
         
         try:
             sys.argv = ['main.py']
-            from src.main import parse_arguments
+            from backend.main import parse_arguments
             args = parse_arguments()
             
             self.assertFalse(args['use_api'])
@@ -416,7 +416,7 @@ class TestCommandLineArguments(unittest.TestCase):
         
         try:
             sys.argv = ['main.py', '--api', '--new-ui', '--legacy-ui', '--legacy', '--verbose', '--help']
-            from src.main import parse_arguments
+            from backend.main import parse_arguments
             args = parse_arguments()
             
             self.assertTrue(args['use_api'])
@@ -436,7 +436,7 @@ class TestCommandLineArguments(unittest.TestCase):
         
         try:
             sys.argv = ['main.py', '-v', '-h']
-            from src.main import parse_arguments
+            from backend.main import parse_arguments
             args = parse_arguments()
             
             self.assertTrue(args['verbose'])
@@ -452,10 +452,10 @@ class TestCommandLineArguments(unittest.TestCase):
         
         try:
             sys.argv = ['main.py', '--help']
-            from src.main import main
+            from backend.main import main
             
             # Should return 0 for help
-            with patch('src.main.show_help') as mock_help:
+            with patch('backend.main.show_help') as mock_help:
                 result = main()
                 self.assertEqual(result, 0)
                 mock_help.assert_called_once()
@@ -472,12 +472,12 @@ class TestCommandLineArguments(unittest.TestCase):
         try:
             sys.argv = ['main.py', '--verbose']
             
-            with patch('src.main.DeepEchoApplication') as mock_app_class:
+            with patch('backend.main.DeepEchoApplication') as mock_app_class:
                 mock_app = MagicMock()
                 mock_app.run.return_value = 0
                 mock_app_class.return_value = mock_app
                 
-                from src.main import main
+                from backend.main import main
                 result = main()
                 
                 self.assertEqual(result, 0)

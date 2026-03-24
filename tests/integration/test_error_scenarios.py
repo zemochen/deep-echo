@@ -15,12 +15,12 @@ import os
 from unittest.mock import patch, MagicMock, Mock
 from datetime import datetime, timedelta
 
-from src.utils.error_recovery import (
+from backend.utils.error_recovery import (
     initialize_error_recovery, shutdown_error_recovery,
     system_health_monitor, error_tracker, device_recovery_manager,
     resource_cleanup_manager
 )
-from src.utils.exceptions import (
+from backend.utils.exceptions import (
     AudioDeviceError, AIProviderConnectionError, AudioTranscriptionError
 )
 
@@ -81,7 +81,7 @@ class TestEndToEndErrorRecovery(unittest.TestCase):
     
     def test_ai_provider_failure_cascade_prevention(self):
         """Test prevention of AI provider failure cascades."""
-        from src.ai.providers.deepseek_provider import DeepSeekProvider
+        from backend.ai.providers.deepseek_provider import DeepSeekProvider
         
         # Create provider with circuit breaker
         provider = DeepSeekProvider("test-key")
@@ -246,7 +246,7 @@ class TestFailureScenarioSimulation(unittest.TestCase):
     
     def test_network_partition_simulation(self):
         """Simulate network partition affecting AI providers."""
-        from src.ai.providers.deepseek_provider import DeepSeekProvider
+        from backend.ai.providers.deepseek_provider import DeepSeekProvider
         
         provider = DeepSeekProvider("test-key")
         
@@ -279,7 +279,7 @@ class TestFailureScenarioSimulation(unittest.TestCase):
             metrics = system_health_monitor._collect_metrics()
             status = system_health_monitor._assess_health(metrics)
             
-            from src.utils.error_recovery import SystemHealthStatus
+            from backend.utils.error_recovery import SystemHealthStatus
             self.assertEqual(status, SystemHealthStatus.CRITICAL)
             
             # Cleanup should be triggered
@@ -524,7 +524,7 @@ class TestSystemResilienceUnderLoad(unittest.TestCase):
     
     def test_graceful_degradation_under_load(self):
         """Test graceful degradation under system load."""
-        from src.utils.retry import GracefulDegradation
+        from backend.utils.retry import GracefulDegradation
         
         # Create degradation chain for critical operation
         degradation = GracefulDegradation("load_test_operation")

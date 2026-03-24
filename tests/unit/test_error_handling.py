@@ -18,17 +18,17 @@ from datetime import datetime, timedelta
 import requests
 import psutil
 
-from src.utils.retry import (
+from backend.utils.retry import (
     RetryConfig, retry_with_backoff, RetryState, CircuitBreaker,
     circuit_breaker, GracefulDegradation, with_graceful_degradation
 )
-from src.utils.error_recovery import (
+from backend.utils.error_recovery import (
     SystemHealthMonitor, ErrorTracker, DeviceRecoveryManager,
     ResourceCleanupManager, SystemHealthStatus, ResourceMetrics,
     ErrorEvent, error_tracker, device_recovery_manager,
     resource_cleanup_manager, system_health_monitor
 )
-from src.utils.exceptions import (
+from backend.utils.exceptions import (
     DeepEchoError, AudioError, AudioDeviceError, AIProviderError,
     AIProviderConnectionError, AIProviderTimeoutError
 )
@@ -767,7 +767,7 @@ class TestNetworkFailureScenarios(unittest.TestCase):
     @patch('requests.post')
     def test_ai_provider_connection_timeout(self, mock_post):
         """Test AI provider handling of connection timeouts."""
-        from src.ai.providers.deepseek_provider import DeepSeekProvider
+        from backend.ai.providers.deepseek_provider import DeepSeekProvider
         
         # Mock timeout exception
         mock_post.side_effect = requests.exceptions.Timeout("Connection timed out")
@@ -783,7 +783,7 @@ class TestNetworkFailureScenarios(unittest.TestCase):
     @patch('requests.post')
     def test_ai_provider_connection_error(self, mock_post):
         """Test AI provider handling of connection errors."""
-        from src.ai.providers.deepseek_provider import DeepSeekProvider
+        from backend.ai.providers.deepseek_provider import DeepSeekProvider
         
         # Mock connection error
         mock_post.side_effect = requests.exceptions.ConnectionError("Network unreachable")
@@ -799,7 +799,7 @@ class TestNetworkFailureScenarios(unittest.TestCase):
     @patch('requests.post')
     def test_ai_provider_rate_limiting(self, mock_post):
         """Test AI provider handling of rate limiting."""
-        from src.ai.providers.deepseek_provider import DeepSeekProvider
+        from backend.ai.providers.deepseek_provider import DeepSeekProvider
         
         # Mock rate limit response
         mock_response = Mock()
@@ -815,7 +815,7 @@ class TestNetworkFailureScenarios(unittest.TestCase):
     @patch('requests.post')
     def test_ai_provider_server_error_recovery(self, mock_post):
         """Test AI provider recovery from server errors."""
-        from src.ai.providers.deepseek_provider import DeepSeekProvider
+        from backend.ai.providers.deepseek_provider import DeepSeekProvider
         
         # Mock server error followed by success
         error_response = Mock()
@@ -840,10 +840,10 @@ class TestNetworkFailureScenarios(unittest.TestCase):
 class TestDeviceDisconnectionHandling(unittest.TestCase):
     """Test cases for device disconnection handling."""
     
-    @patch('src.audio.recorder.sr.Microphone')
+    @patch('backend.audio.recorder.sr.Microphone')
     def test_microphone_disconnection_recovery(self, mock_microphone):
         """Test microphone disconnection and recovery."""
-        from src.audio.recorder import DefaultMicRecorder
+        from backend.audio.recorder import DefaultMicRecorder
         
         # Mock initial successful creation
         mock_source = Mock()
@@ -858,11 +858,11 @@ class TestDeviceDisconnectionHandling(unittest.TestCase):
         self.assertTrue(success)
         self.assertGreater(mock_microphone.call_count, 1)
     
-    @patch('src.audio_system.get_default_speaker')
-    @patch('src.audio.recorder.sr.Microphone')
+    @patch('backend.audio_system.get_default_speaker')
+    @patch('backend.audio.recorder.sr.Microphone')
     def test_speaker_disconnection_recovery(self, mock_microphone, mock_get_speaker):
         """Test speaker disconnection and recovery."""
-        from src.audio.recorder import DefaultSpeakerRecorder
+        from backend.audio.recorder import DefaultSpeakerRecorder
         
         # Mock speaker info
         speaker_info = {
@@ -937,8 +937,8 @@ class TestResourceLimitScenarios(unittest.TestCase):
     @patch('queue.Queue.put')
     def test_queue_overflow_handling(self, mock_put):
         """Test handling of queue overflow situations."""
-        from src.audio.transcriber import AudioTranscriber
-        from src.audio.models import LocalWhisperModel
+        from backend.audio.transcriber import AudioTranscriber
+        from backend.audio.models import LocalWhisperModel
         
         # Mock queue that raises exception when full
         mock_put.side_effect = queue.Full("Queue is full")
@@ -984,8 +984,8 @@ class TestResourceLimitScenarios(unittest.TestCase):
     @patch('os.unlink')
     def test_temporary_file_cleanup(self, mock_unlink, mock_mkstemp):
         """Test cleanup of temporary files."""
-        from src.audio.transcriber import AudioTranscriber
-        from src.audio.models import LocalWhisperModel
+        from backend.audio.transcriber import AudioTranscriber
+        from backend.audio.models import LocalWhisperModel
         
         # Mock temporary file creation
         mock_mkstemp.return_value = (1, "/tmp/test_audio.wav")

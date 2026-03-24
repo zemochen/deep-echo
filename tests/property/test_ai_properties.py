@@ -21,9 +21,9 @@ from unittest.mock import Mock, patch, MagicMock
 import time
 from datetime import datetime
 
-from src.ai.adapter import AIAdapter
-from src.ai.responder import GPTResponder
-from src.ai.providers.base_provider import (
+from backend.ai.adapter import AIAdapter
+from backend.ai.responder import GPTResponder
+from backend.ai.providers.base_provider import (
     AIProvider, 
     AIProviderError,
     AIProviderConnectionError,
@@ -31,8 +31,8 @@ from src.ai.providers.base_provider import (
     AIProviderRateLimitError,
     AIProviderTimeoutError
 )
-from src.ai.providers.deepseek_provider import DeepSeekProvider
-from src.ai.providers.openai_provider import OpenAIProvider
+from backend.ai.providers.deepseek_provider import DeepSeekProvider
+from backend.ai.providers.openai_provider import OpenAIProvider
 
 
 # Test fixtures and helpers

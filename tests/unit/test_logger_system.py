@@ -8,9 +8,9 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 
-from src.utils.logger_config import LoggerConfig
-from src.utils.logger_adapter import LoggerAdapter
-from src.utils.logger_factory import LoggerFactory
+from backend.utils.logger_config import LoggerConfig
+from backend.utils.logger_adapter import LoggerAdapter
+from backend.utils.logger_factory import LoggerFactory
 
 
 class TestLoggerConfig:

@@ -16,17 +16,17 @@ import sys
 from unittest.mock import Mock, patch, MagicMock
 from pathlib import Path
 
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
+# Add backend to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "backend"))
 
-from src.integration import IntegratedDeepEchoApplication, create_integrated_application
-from src.config.config_manager import get_config_manager, SystemConfig
-from src.ai.adapter import AIAdapter
-from src.ai.providers.base_provider import AIProvider
-from src.audio.transcriber import AudioTranscriber
-from src.audio.recorder import DefaultMicRecorder, DefaultSpeakerRecorder
-from src.utils.threading import ThreadManager
-from src.utils.queue_manager import QueueManager
+from backend.integration import IntegratedDeepEchoApplication, create_integrated_application
+from backend.config.config_manager import get_config_manager, SystemConfig
+from backend.ai.adapter import AIAdapter
+from backend.ai.providers.base_provider import AIProvider
+from backend.audio.transcriber import AudioTranscriber
+from backend.audio.recorder import DefaultMicRecorder, DefaultSpeakerRecorder
+from backend.utils.threading import ThreadManager
+from backend.utils.queue_manager import QueueManager
 
 
 class MockAIProvider(AIProvider):
@@ -370,7 +370,7 @@ class TestCrossPlatformCompatibility:
         app = mock_integrated_app
         
         # Test Windows audio system initialization
-        with patch('src.audio_system.audio_factory.AudioSystemFactory') as mock_factory:
+        with patch('backend.audio_system.audio_factory.AudioSystemFactory') as mock_factory:
             mock_audio_system = Mock()
             mock_factory.return_value.create_audio_system.return_value = mock_audio_system
             
@@ -384,7 +384,7 @@ class TestCrossPlatformCompatibility:
         app = mock_integrated_app
         
         # Test macOS audio system initialization
-        with patch('src.audio_system.audio_factory.AudioSystemFactory') as mock_factory:
+        with patch('backend.audio_system.audio_factory.AudioSystemFactory') as mock_factory:
             mock_audio_system = Mock()
             mock_factory.return_value.create_audio_system.return_value = mock_audio_system
             

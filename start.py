@@ -33,9 +33,9 @@ def check_setup():
     if not Path("main.py").exists():
         issues.append("main.py not found")
     
-    # Check if src directory exists
-    if not Path("src").exists():
-        issues.append("src directory not found")
+    # Check if backend directory exists
+    if not Path("backend").exists():
+        issues.append("backend directory not found")
     
     # Check if configuration exists
     if not Path("config.json").exists() and not Path("keys.py").exists():
@@ -74,26 +74,26 @@ def run_diagnostics():
     
     # Try to import core modules
     try:
-        import src.config.config_manager
+        import backend.config.config_manager
         print("✅ Configuration module available")
     except ImportError as e:
         print(f"❌ Configuration module error: {e}")
     
     try:
-        import src.ai.adapter
+        import backend.ai.adapter
         print("✅ AI adapter module available")
     except ImportError as e:
         print(f"❌ AI adapter module error: {e}")
     
     try:
-        import src.audio.recorder
+        import backend.audio.recorder
         print("✅ Audio recorder module available")
     except ImportError as e:
         print(f"❌ Audio recorder module error: {e}")
     
     # Check configuration
     try:
-        from src.config.config_manager import get_config_manager
+        from backend.config.config_manager import get_config_manager
         config_manager = get_config_manager()
         config = config_manager.load_config()
         print("✅ Configuration loads successfully")

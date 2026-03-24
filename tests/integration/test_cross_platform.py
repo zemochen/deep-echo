@@ -14,13 +14,13 @@ import json
 from unittest.mock import Mock, patch, MagicMock
 from pathlib import Path
 
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
+# Add backend to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "backend"))
 
-from src.integration import IntegratedDeepEchoApplication
-from src.config.config_manager import get_config_manager
-from src.audio_system.audio_factory import AudioSystemFactory
-from src.utils.logger import get_logger
+from backend.integration import IntegratedDeepEchoApplication
+from backend.config.config_manager import get_config_manager
+from backend.audio_system.audio_factory import AudioSystemFactory
+from backend.utils.logger import get_logger
 
 
 class TestPlatformDetection:
@@ -82,7 +82,7 @@ class TestAudioSystemCompatibility:
         factory = AudioSystemFactory()
         
         # Mock Windows-specific audio components
-        with patch('src.audio_system.windows_audio.WindowsAudioSystem') as mock_windows:
+        with patch('backend.audio_system.windows_audio.WindowsAudioSystem') as mock_windows:
             mock_audio_system = Mock()
             mock_windows.return_value = mock_audio_system
             
@@ -100,7 +100,7 @@ class TestAudioSystemCompatibility:
         factory = AudioSystemFactory()
         
         # Mock macOS-specific audio components
-        with patch('src.audio_system.macos_audio.MacOSAudioSystem') as mock_macos:
+        with patch('backend.audio_system.macos_audio.MacOSAudioSystem') as mock_macos:
             mock_audio_system = Mock()
             mock_macos.return_value = mock_audio_system
             
@@ -484,7 +484,7 @@ class TestErrorHandlingCompatibility:
             assert str(e) == "Test error"
             
         # Test custom exception handling
-        from src.utils.exceptions import DeepEchoError
+        from backend.utils.exceptions import DeepEchoError
         
         try:
             raise DeepEchoError("Custom error")

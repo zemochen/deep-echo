@@ -18,7 +18,7 @@
 
 然后运行：
 ```bash
-python src/main.py
+python backend/main.py
 ```
 
 首次运行会自动下载模型（约 75MB），后续使用会从缓存加载。

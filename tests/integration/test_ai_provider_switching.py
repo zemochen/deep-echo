@@ -12,13 +12,13 @@ from unittest.mock import Mock, patch, MagicMock
 import sys
 from pathlib import Path
 
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
+# Add backend to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "backend"))
 
-from src.ai.adapter import AIAdapter
-from src.ai.providers.base_provider import AIProvider
-from src.ai.responder import GPTResponder
-from src.utils.exceptions import AISystemError
+from backend.ai.adapter import AIAdapter
+from backend.ai.providers.base_provider import AIProvider
+from backend.ai.responder import GPTResponder
+from backend.utils.exceptions import AISystemError
 
 
 class MockProvider(AIProvider):

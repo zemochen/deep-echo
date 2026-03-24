@@ -119,9 +119,9 @@ import numpy as np
 import custom_speech_recognition as sr
 
 # Local module imports
-from src.audio.recorder import AudioRecorder
-from src.ai.adapter import AIAdapter
-from src.config.settings import RECORD_TIMEOUT
+from backend.audio.recorder import AudioRecorder
+from backend.ai.adapter import AIAdapter
+from backend.config.settings import RECORD_TIMEOUT
 ```
 
 ## Architecture Layers

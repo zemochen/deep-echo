@@ -29,9 +29,9 @@ import queue
 import time
 from datetime import datetime
 from unittest.mock import Mock, patch, MagicMock
-import src.custom_speech_recognition as sr
+import backend.custom_speech_recognition as sr
 
-from src.audio.recorder import (
+from backend.audio.recorder import (
     BaseRecorder,
     DefaultMicRecorder,
     DefaultSpeakerRecorder,
@@ -39,7 +39,7 @@ from src.audio.recorder import (
     AudioDeviceNotFoundError,
     AudioRecordingError
 )
-from src.audio.models import (
+from backend.audio.models import (
     BaseTranscriber,
     FasterWhisperTranscriber,
     APIWhisperTranscriber,
@@ -86,7 +86,7 @@ class TestBaseRecorder:
     
     def test_init_with_valid_source(self, mock_audio_source):
         """Test successful initialization with valid source"""
-        with patch('src.audio.recorder.sr.Recognizer') as mock_recognizer_class:
+        with patch('backend.audio.recorder.sr.Recognizer') as mock_recognizer_class:
             mock_recognizer_class.return_value = Mock()
             recorder = BaseRecorder(mock_audio_source)
             assert recorder.source == mock_audio_source
@@ -94,7 +94,7 @@ class TestBaseRecorder:
     
     def test_adjust_for_noise_success(self, mock_audio_source):
         """Test successful noise adjustment"""
-        with patch('src.audio.recorder.sr.Recognizer') as mock_recognizer_class:
+        with patch('backend.audio.recorder.sr.Recognizer') as mock_recognizer_class:
             mock_recognizer = Mock()
             mock_recognizer_class.return_value = mock_recognizer
             
@@ -105,7 +105,7 @@ class TestBaseRecorder:
     
     def test_record_into_queue_starts_background_recording(self, mock_audio_source):
         """Test that record_into_queue starts background recording"""
-        with patch('src.audio.recorder.sr.Recognizer') as mock_recognizer_class:
+        with patch('backend.audio.recorder.sr.Recognizer') as mock_recognizer_class:
             mock_recognizer = Mock()
             mock_stop_func = Mock()
             mock_recognizer.listen_in_background = Mock(return_value=mock_stop_func)
@@ -121,7 +121,7 @@ class TestBaseRecorder:
     
     def test_stop_recording(self, mock_audio_source):
         """Test stopping background recording"""
-        with patch('src.audio.recorder.sr.Recognizer') as mock_recognizer_class:
+        with patch('backend.audio.recorder.sr.Recognizer') as mock_recognizer_class:
             mock_recognizer = Mock()
             mock_stop_func = Mock()
             mock_recognizer.listen_in_background = Mock(return_value=mock_stop_func)
@@ -177,7 +177,7 @@ def test_property_audio_data_end_to_end_processing(audio_data, num_audio_chunks)
         callback_func = callback
         return Mock()  # Return mock stop function
     
-    with patch('src.audio.recorder.sr.Recognizer') as mock_recognizer_class:
+    with patch('backend.audio.recorder.sr.Recognizer') as mock_recognizer_class:
         mock_recognizer = Mock()
         mock_recognizer.energy_threshold = 1000
         mock_recognizer.dynamic_energy_threshold = False
@@ -262,7 +262,7 @@ def test_property_audio_queue_data_integrity(audio_data):
         callback_func = callback
         return Mock()
     
-    with patch('src.audio.recorder.sr.Recognizer') as mock_recognizer_class:
+    with patch('backend.audio.recorder.sr.Recognizer') as mock_recognizer_class:
         mock_recognizer = Mock()
         mock_recognizer.energy_threshold = 1000
         mock_recognizer.dynamic_energy_threshold = False
@@ -313,7 +313,7 @@ def test_property_concurrent_audio_processing(num_concurrent_chunks):
         callback_func = callback
         return Mock()
     
-    with patch('src.audio.recorder.sr.Recognizer') as mock_recognizer_class:
+    with patch('backend.audio.recorder.sr.Recognizer') as mock_recognizer_class:
         mock_recognizer = Mock()
         mock_recognizer.energy_threshold = 1000
         mock_recognizer.dynamic_energy_threshold = False
@@ -381,10 +381,10 @@ def test_property_audio_source_distinction_marking(mic_text_samples, speaker_tex
     3. Source marking is consistent across all transcriptions
     4. Combined transcript maintains proper source attribution
     """
-    from src.audio.transcriber import AudioTranscriber
+    from backend.audio.transcriber import AudioTranscriber
     from datetime import datetime, timezone
     from unittest.mock import Mock
-    import src.custom_speech_recognition as sr
+    import backend.custom_speech_recognition as sr
     
     # Filter out empty or whitespace-only samples and make them unique per source
     mic_texts = [f"mic_{i}_{text.strip()}" for i, text in enumerate(mic_text_samples) if text.strip()]
@@ -488,10 +488,10 @@ def test_property_audio_source_consistency(num_transcriptions):
     For any number of transcriptions, the source marking should remain
     consistent across all transcript operations (get, clear, update).
     """
-    from src.audio.transcriber import AudioTranscriber
+    from backend.audio.transcriber import AudioTranscriber
     from datetime import datetime, timezone
     from unittest.mock import Mock
-    import src.custom_speech_recognition as sr
+    import backend.custom_speech_recognition as sr
     
     # Create mock audio sources
     mock_mic_source = Mock(spec=sr.Microphone)
@@ -580,8 +580,8 @@ def test_property_language_detection_and_processing_mode(use_api_mode):
     4. Processing mode matches expected capabilities
     """
     # Test different transcriber configurations
-    with patch('src.audio.models.get_openai_client') as mock_client, \
-         patch('src.audio.models.WhisperModel') as mock_whisper_model:
+    with patch('backend.audio.models.get_openai_client') as mock_client, \
+         patch('backend.audio.models.WhisperModel') as mock_whisper_model:
         
         # Mock OpenAI client for API mode
         mock_openai_client = Mock()
@@ -683,8 +683,8 @@ def test_property_mode_switching_consistency(initial_mode, switch_to_mode, model
     3. Transcription quality is maintained after switch
     4. Mode validation works correctly
     """
-    with patch('src.audio.models.get_openai_client') as mock_client, \
-         patch('src.audio.models.WhisperModel') as mock_whisper_model, \
+    with patch('backend.audio.models.get_openai_client') as mock_client, \
+         patch('backend.audio.models.WhisperModel') as mock_whisper_model, \
          patch('torch.cuda.is_available', return_value=False):  # Force CPU for consistency
         
         # Mock dependencies
@@ -807,8 +807,8 @@ def test_property_processing_mode_selection(user_choice_api, processing_preferen
     3. System applies appropriate settings for chosen mode
     4. Mode capabilities align with user expectations
     """
-    with patch('src.audio.models.get_openai_client') as mock_client, \
-         patch('src.audio.models.WhisperModel') as mock_whisper_model, \
+    with patch('backend.audio.models.get_openai_client') as mock_client, \
+         patch('backend.audio.models.WhisperModel') as mock_whisper_model, \
          patch('torch.cuda.is_available', return_value=True):  # Test with GPU available
         
         # Mock dependencies

@@ -21,9 +21,9 @@ from hypothesis import given, strategies as st, settings, assume
 # Mock customtkinter before importing UI modules
 sys.modules['customtkinter'] = Mock()
 
-from src.ui.controller import UIController
-from src.ui.components import AIProviderSelector, StatusIndicator, ControlPanel
-from src.config.validator import ConfigValidator
+from backend.ui.controller import UIController
+from backend.ui.components import AIProviderSelector, StatusIndicator, ControlPanel
+from backend.config.validator import ConfigValidator
 
 
 class TestUIRealTimeResponseUpdates:
@@ -37,7 +37,7 @@ class TestUIRealTimeResponseUpdates:
     def setup_method(self):
         """Set up test environment."""
         # Mock customtkinter components
-        with patch('src.ui.controller.ctk') as mock_ctk:
+        with patch('backend.ui.controller.ctk') as mock_ctk:
             mock_ctk.CTk = Mock
             mock_ctk.CTkFrame = Mock
             mock_ctk.CTkTextbox = Mock
@@ -140,7 +140,7 @@ class TestUIFreezeStateManagement:
     
     def setup_method(self):
         """Set up test environment."""
-        with patch('src.ui.controller.ctk'):
+        with patch('backend.ui.controller.ctk'):
             self.ui_controller = UIController()
             self.mock_responder = Mock()
     
@@ -227,7 +227,7 @@ class TestUIConfigurationDisplaySync:
     
     def setup_method(self):
         """Set up test environment."""
-        with patch('src.ui.controller.ctk'):
+        with patch('backend.ui.controller.ctk'):
             self.ui_controller = UIController()
     
     @given(interval=st.integers(min_value=1, max_value=10))

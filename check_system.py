@@ -176,11 +176,11 @@ def check_deepecho_files():
     
     required_files = [
         "main.py",
-        "src/main.py",
-        "src/integration.py",
-        "src/config/config_manager.py",
-        "src/ai/adapter.py",
-        "src/audio/recorder.py",
+        "backend/main.py",
+        "backend/integration.py",
+        "backend/config/config_manager.py",
+        "backend/ai/adapter.py",
+        "backend/audio/recorder.py",
     ]
     
     optional_files = [

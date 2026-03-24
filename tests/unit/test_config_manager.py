@@ -13,11 +13,11 @@ import shutil
 from pathlib import Path
 from unittest.mock import patch, MagicMock, mock_open
 
-from src.config.config_manager import (
+from backend.config.config_manager import (
     ConfigManager, SystemConfig, AIProviderConfig, AudioConfig, UIConfig,
     ConfigurationError, get_config_manager, load_config, save_config
 )
-from src.config.validator import ConfigValidator
+from backend.config.validator import ConfigValidator
 
 
 class TestConfigManager(unittest.TestCase):
@@ -359,7 +359,7 @@ class TestSystemStartup(unittest.TestCase):
         # Mock successful FFmpeg check
         mock_run.return_value.returncode = 0
         
-        from src.main import DeepEchoApplication
+        from backend.main import DeepEchoApplication
         app = DeepEchoApplication()
         
         success, message = app.validate_dependencies()
@@ -372,7 +372,7 @@ class TestSystemStartup(unittest.TestCase):
         # Mock FFmpeg not found
         mock_run.side_effect = FileNotFoundError()
         
-        from src.main import DeepEchoApplication
+        from backend.main import DeepEchoApplication
         app = DeepEchoApplication()
         
         success, message = app.validate_dependencies()
@@ -386,7 +386,7 @@ class TestSystemStartup(unittest.TestCase):
         import subprocess
         mock_run.side_effect = subprocess.TimeoutExpired("ffmpeg", 10)
         
-        from src.main import DeepEchoApplication
+        from backend.main import DeepEchoApplication
         app = DeepEchoApplication()
         
         success, message = app.validate_dependencies()
@@ -395,7 +395,7 @@ class TestSystemStartup(unittest.TestCase):
     
     def test_load_configuration_success(self):
         """Test successful configuration loading."""
-        from src.main import DeepEchoApplication
+        from backend.main import DeepEchoApplication
         
         # Create app with temporary config directory
         app = DeepEchoApplication()
@@ -405,13 +405,13 @@ class TestSystemStartup(unittest.TestCase):
         self.assertTrue(success)
         self.assertIsNotNone(app.config)
     
-    @patch('src.config.config_manager.ConfigManager.load_config')
+    @patch('backend.config.config_manager.ConfigManager.load_config')
     def test_load_configuration_failure(self, mock_load):
         """Test configuration loading failure."""
         # Mock configuration loading failure
         mock_load.side_effect = Exception("Config load error")
         
-        from src.main import DeepEchoApplication
+        from backend.main import DeepEchoApplication
         app = DeepEchoApplication()
         
         success = app.load_configuration()
@@ -419,7 +419,7 @@ class TestSystemStartup(unittest.TestCase):
     
     def test_parse_arguments(self):
         """Test command line argument parsing."""
-        from src.main import parse_arguments
+        from backend.main import parse_arguments
         
         # Mock sys.argv
         import sys
@@ -444,7 +444,7 @@ class TestSystemStartup(unittest.TestCase):
     
     def test_show_help(self):
         """Test help message display."""
-        from src.main import show_help
+        from backend.main import show_help
         
         # Should not raise any exceptions
         try:
@@ -465,8 +465,8 @@ class TestGlobalFunctions(unittest.TestCase):
         shutil.rmtree(self.temp_dir, ignore_errors=True)
         
         # Reset global config manager
-        import src.config.config_manager
-        src.config.config_manager._config_manager = None
+        import backend.config.config_manager
+        backend.config.config_manager._config_manager = None
     
     def test_get_config_manager_singleton(self):
         """Test that get_config_manager returns singleton instance."""
@@ -475,7 +475,7 @@ class TestGlobalFunctions(unittest.TestCase):
         
         self.assertIs(manager1, manager2)
     
-    @patch('src.config.config_manager.get_config_manager')
+    @patch('backend.config.config_manager.get_config_manager')
     def test_load_config_convenience_function(self, mock_get_manager):
         """Test load_config convenience function."""
         mock_manager = MagicMock()
@@ -484,7 +484,7 @@ class TestGlobalFunctions(unittest.TestCase):
         load_config()
         mock_manager.load_config.assert_called_once()
     
-    @patch('src.config.config_manager.get_config_manager')
+    @patch('backend.config.config_manager.get_config_manager')
     def test_save_config_convenience_function(self, mock_get_manager):
         """Test save_config convenience function."""
         mock_manager = MagicMock()
