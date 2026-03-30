@@ -94,3 +94,6 @@ config.local.json
 transcript_log/
 logs/
 /.vscode/
+.venv/
+__pycache__/
+*.pyc
