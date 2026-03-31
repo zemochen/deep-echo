@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Frontend Status Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>DeepEcho Frontend Status Test</h1>
+    
+    <div id="status-container">
+        <div class="status info">Checking frontend status...</div>
+    </div>
+    
+    <div>
+        <button onclick="checkTauriConnection()">Check Tauri Connection</button>
+        <button onclick="checkPythonService()">Check Python Service</button>
+        <button onclick="testTranscript()">Test Transcript</button>
+        <button onclick="startPythonService()">Start Python Service</button>
+    </div>
+    
+    <div id="logs" style="margin-top: 20px; padding: 10px; background-color: #f8f9fa; border-radius: 5px; max-height: 400px; overflow-y: auto;">
+        <h3>Logs:</h3>
+        <div id="log-content"></div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const logContent = document.getElementById('log-content');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span style="color: #666;">[${timestamp}]</span> ${message}`;
+            logContent.appendChild(logEntry);
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+
+        function updateStatus(message, type = 'info') {
+            const container = document.getElementById('status-container');
+            container.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        async function checkTauriConnection() {
+            log('Checking Tauri connection...');
+            
+            try {
+                if (typeof window.__TAURI__ === 'undefined') {
+                    throw new Error('Tauri API not available');
+                }
+                
+                const { invoke } = window.__TAURI__.tauri;
+                
+                // Test basic Tauri command
+                const result = await invoke('get_system_info');
+                log('✅ Tauri connection successful');
+                log(`System info: ${JSON.stringify(result)}`);
+                updateStatus('Tauri connection: OK', 'success');
+                
+            } catch (error) {
+                log(`❌ Tauri connection failed: ${error.message}`);
+                updateStatus(`Tauri connection: FAILED - ${error.message}`, 'error');
+            }
+        }
+
+        async function checkPythonService() {
+            log('Checking Python service status...');
+            
+            try {
+                if (typeof window.__TAURI__ === 'undefined') {
+                    throw new Error('Tauri API not available');
+                }
+                
+                const { invoke } = window.__TAURI__.tauri;
+                
+                const status = await invoke('get_python_service_status');
+                log(`Python service status: ${JSON.stringify(status)}`);
+                
+                if (status.is_running) {
+                    updateStatus('Python service: RUNNING', 'success');
+                } else {
+                    updateStatus(`Python service: ${status.state.toUpperCase()}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Failed to check Python service: ${error.message}`);
+                updateStatus(`Python service: ERROR - ${error.message}`, 'error');
+            }
+        }
+
+        async function startPythonService() {
+            log('Starting Python service...');
+            
+            try {
+                if (typeof window.__TAURI__ === 'undefined') {
+                    throw new Error('Tauri API not available');
+                }
+                
+                const { invoke } = window.__TAURI__.tauri;
+                
+                const result = await invoke('start_python_service');
+                log(`✅ ${result}`);
+                updateStatus('Python service: STARTING', 'info');
+                
+                // Check status after a delay
+                setTimeout(checkPythonService, 2000);
+                
+            } catch (error) {
+                log(`❌ Failed to start Python service: ${error.message}`);
+                updateStatus(`Python service start: FAILED - ${error.message}`, 'error');
+            }
+        }
+
+        async function testTranscript() {
+            log('Testing transcript functionality...');
+            
+            try {
+                if (typeof window.__TAURI__ === 'undefined') {
+                    throw new Error('Tauri API not available');
+                }
+                
+                const { invoke } = window.__TAURI__.tauri;
+                
+                const transcript = await invoke('get_transcript');
+                log(`Transcript result: ${JSON.stringify(transcript)}`);
+                updateStatus('Transcript test: OK', 'success');
+                
+            } catch (error) {
+                log(`❌ Transcript test failed: ${error.message}`);
+                updateStatus(`Transcript test: FAILED - ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-check on load
+        window.addEventListener('load', () => {
+            log('Page loaded, checking status...');
+            checkTauriConnection();
+        });
+    </script>
+</body>
+</html>
