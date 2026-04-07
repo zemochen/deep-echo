@@ -496,6 +496,7 @@ class MessageHandler:
                     microphones.append({
                         "id": str(idx),
                         "name": name,
+                        "deviceType": "microphone",
                         "is_default": idx == 0
                     })
                 logger.debug(f"Found {len(microphones)} microphone devices")
@@ -509,6 +510,7 @@ class MessageHandler:
                     speakers.append({
                         "id": str(speaker_info.get("index", 0)),
                         "name": speaker_info.get("name", "Default Speaker"),
+                        "deviceType": "speaker",
                         "is_default": True,
                         "sample_rate": speaker_info.get("defaultSampleRate"),
                         "channels": speaker_info.get("maxInputChannels")
