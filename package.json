@@ -1,0 +1,17 @@
+{
+  "name": "deepecho",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "tauri": "cd src-tauri && cargo tauri dev",
+    "tauri:build": "cd src-tauri && cargo tauri build",
+    "dev": "./dev.sh dev",
+    "setup": "./dev.sh setup",
+    "frontend": "./dev.sh frontend",
+    "backend": "./dev.sh backend"
+  },
+  "description": "DeepEcho - Real-time Voice AI Assistant",
+  "keywords": ["tauri", "desktop", "voice", "ai", "transcription"],
+  "author": "DeepEcho Team",
+  "license": "MIT"
+}
