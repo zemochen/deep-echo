@@ -24,6 +24,12 @@ interface AppState {
   config: ConfigData | null;
   setConfig: (config: ConfigData) => void;
 
+  // Audio device selection
+  selectedMicId: string | null;
+  selectedSpeakerId: string | null;
+  setSelectedMicId: (id: string | null) => void;
+  setSelectedSpeakerId: (id: string | null) => void;
+
   // Clear all context
   clearContext: () => void;
 }
@@ -37,6 +43,8 @@ export const useAppStore = create<AppState>((set) => ({
     message: 'Ready',
   },
   config: null,
+  selectedMicId: null,
+  selectedSpeakerId: null,
 
   // Actions
   addTranscript: (transcript) =>
@@ -67,6 +75,16 @@ export const useAppStore = create<AppState>((set) => ({
   setConfig: (config) =>
     set({
       config,
+    }),
+
+  setSelectedMicId: (id) =>
+    set({
+      selectedMicId: id,
+    }),
+
+  setSelectedSpeakerId: (id) =>
+    set({
+      selectedSpeakerId: id,
     }),
 
   clearContext: () =>

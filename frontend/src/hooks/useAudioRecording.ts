@@ -4,9 +4,10 @@
  * Requirements: 5.1-5.6
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { startRecording, stopRecording, getAudioDevices, setAudioDevice } from '../services/tauriService';
 import { getAudioService } from '../services/audioService';
+import { useAppStore } from '../store/appStore';
 import type { AudioDevice } from '../types/api';
 import type { AudioRecordingState, AudioVisualizationData } from '../types/audio';
 
@@ -56,6 +57,8 @@ export interface UseAudioRecordingReturn {
   isLoadingDevices: boolean;
   visualizationData: AudioVisualizationData | null;
   isMicrophoneActive: boolean;
+  selectedMicId: string | null;
+  selectedSpeakerId: string | null;
 
   // Actions
   startRecording: (deviceType: 'microphone' | 'speaker') => Promise<void>;
@@ -119,6 +122,14 @@ export function useAudioRecording(
     onError,
   } = options;
 
+  // Stable refs for callbacks to avoid re-creating memoized functions
+  const onErrorRef = useRef(onError);
+  const onRecordingStartRef = useRef(onRecordingStart);
+  const onRecordingStopRef = useRef(onRecordingStop);
+  useEffect(() => { onErrorRef.current = onError; });
+  useEffect(() => { onRecordingStartRef.current = onRecordingStart; });
+  useEffect(() => { onRecordingStopRef.current = onRecordingStop; });
+
   // ============================================================================
   // State
   // ============================================================================
@@ -133,6 +144,12 @@ export function useAudioRecording(
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
   const [visualizationData, setVisualizationData] = useState<AudioVisualizationData | null>(null);
   const [isMicrophoneActive, setIsMicrophoneActive] = useState(false);
+
+  // Zustand store for device selection persistence
+  const selectedMicId = useAppStore((s) => s.selectedMicId);
+  const selectedSpeakerId = useAppStore((s) => s.selectedSpeakerId);
+  const setSelectedMicId = useAppStore((s) => s.setSelectedMicId);
+  const setSelectedSpeakerId = useAppStore((s) => s.setSelectedSpeakerId);
 
   // ============================================================================
   // Audio Service
@@ -151,27 +168,16 @@ export function useAudioRecording(
     async (deviceType: 'microphone' | 'speaker') => {
       try {
         setState(prev => ({ ...prev, error: null }));
-
-        // Call Tauri command to start backend recording
         await startRecording(deviceType);
-
-        setState({
-          isRecording: true,
-          deviceType,
-          error: null,
-        });
-
-        onRecordingStart?.(deviceType);
+        setState({ isRecording: true, deviceType, error: null });
+        onRecordingStartRef.current?.(deviceType);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to start recording';
-        setState(prev => ({
-          ...prev,
-          error: errorMessage,
-        }));
-        onError?.(error instanceof Error ? error : new Error(errorMessage));
+        setState(prev => ({ ...prev, error: errorMessage }));
+        onErrorRef.current?.(error instanceof Error ? error : new Error(errorMessage));
       }
     },
-    [onRecordingStart, onError]
+    []
   );
 
   /**
@@ -180,26 +186,15 @@ export function useAudioRecording(
   const handleStopRecording = useCallback(async () => {
     try {
       setState(prev => ({ ...prev, error: null }));
-
-      // Call Tauri command to stop backend recording
       await stopRecording();
-
-      setState({
-        isRecording: false,
-        deviceType: null,
-        error: null,
-      });
-
-      onRecordingStop?.();
+      setState({ isRecording: false, deviceType: null, error: null });
+      onRecordingStopRef.current?.();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to stop recording';
-      setState(prev => ({
-        ...prev,
-        error: errorMessage,
-      }));
-      onError?.(error instanceof Error ? error : new Error(errorMessage));
+      setState(prev => ({ ...prev, error: errorMessage }));
+      onErrorRef.current?.(error instanceof Error ? error : new Error(errorMessage));
     }
-  }, [onRecordingStop, onError]);
+  }, []);
 
   /**
    * Load available audio devices
@@ -217,31 +212,46 @@ export function useAudioRecording(
         ...prev,
         error: errorMessage,
       }));
-      onError?.(error instanceof Error ? error : new Error(errorMessage));
+      onErrorRef.current?.(error instanceof Error ? error : new Error(errorMessage));
     } finally {
       setIsLoadingDevices(false);
     }
-  }, [onError]);
+  }, []);
 
   /**
-   * Select a specific audio device
+   * Select a specific audio device.
+   * If recording, stops first, switches device, updates store, then restarts.
+   * If setAudioDevice fails, store is NOT updated and the error is re-thrown.
    */
   const selectDevice = useCallback(
     async (deviceType: 'microphone' | 'speaker', deviceId: string) => {
-      try {
-        setState(prev => ({ ...prev, error: null }));
+      setState(prev => ({ ...prev, error: null }));
 
-        await setAudioDevice(deviceType, deviceId);
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to set device';
-        setState(prev => ({
-          ...prev,
-          error: errorMessage,
-        }));
-        onError?.(error instanceof Error ? error : new Error(errorMessage));
+      const wasRecording = state.isRecording;
+
+      // Step 1: stop recording if active
+      if (wasRecording) {
+        await stopRecording();
+        setState(prev => ({ ...prev, isRecording: false, deviceType: null }));
+      }
+
+      // Step 2: switch device — if this throws, do NOT update store
+      await setAudioDevice(deviceType, deviceId);
+
+      // Step 3: update Zustand store on success
+      if (deviceType === 'microphone') {
+        setSelectedMicId(deviceId);
+      } else {
+        setSelectedSpeakerId(deviceId);
+      }
+
+      // Step 4: restart recording if it was active before
+      if (wasRecording) {
+        await startRecording(deviceType);
+        setState(prev => ({ ...prev, isRecording: true, deviceType }));
       }
     },
-    [onError]
+    [state.isRecording, setSelectedMicId, setSelectedSpeakerId]
   );
 
   /**
@@ -251,11 +261,8 @@ export function useAudioRecording(
     async (deviceId?: string) => {
       try {
         setState(prev => ({ ...prev, error: null }));
-
         await audioService.requestMicrophoneAccess(deviceId);
         setIsMicrophoneActive(true);
-
-        // Start visualization if enabled
         if (enableVisualization) {
           audioService.startVisualization((data) => {
             setVisualizationData(data);
@@ -263,15 +270,12 @@ export function useAudioRecording(
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to access microphone';
-        setState(prev => ({
-          ...prev,
-          error: errorMessage,
-        }));
+        setState(prev => ({ ...prev, error: errorMessage }));
         setIsMicrophoneActive(false);
-        onError?.(error instanceof Error ? error : new Error(errorMessage));
+        onErrorRef.current?.(error instanceof Error ? error : new Error(errorMessage));
       }
     },
-    [audioService, enableVisualization, onError]
+    [audioService, enableVisualization]
   );
 
   /**
@@ -324,6 +328,8 @@ export function useAudioRecording(
     isLoadingDevices,
     visualizationData,
     isMicrophoneActive,
+    selectedMicId,
+    selectedSpeakerId,
 
     // Actions
     startRecording: handleStartRecording,

@@ -87,11 +87,30 @@ export async function stopRecording(): Promise<string> {
 }
 
 /**
- * Get list of available audio devices
+ * Get list of available audio devices.
+ * In non-Tauri environments, falls back to browser's mediaDevices API.
  * @returns Array of audio devices
  * @throws TauriCommandError if device enumeration fails
  */
 export async function getAudioDevices(): Promise<AudioDevice[]> {
+  // Non-Tauri fallback: use browser mediaDevices API
+  if (!(window as any).__TAURI__) {
+    try {
+      // Request permission first so labels are populated
+      await navigator.mediaDevices.getUserMedia({ audio: true }).then(s => s.getTracks().forEach(t => t.stop()));
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      return devices
+        .filter(d => d.kind === 'audioinput' || d.kind === 'audiooutput')
+        .map(d => ({
+          id: d.deviceId,
+          name: d.label || `${d.kind === 'audioinput' ? 'Microphone' : 'Speaker'} (${d.deviceId.slice(0, 8)})`,
+          deviceType: d.kind === 'audioinput' ? 'microphone' : 'speaker',
+        } as AudioDevice));
+    } catch {
+      return [];
+    }
+  }
+
   try {
     return await invoke<AudioDevice[]>(TAURI_COMMANDS.GET_AUDIO_DEVICES);
   } catch (error) {
