@@ -14,6 +14,7 @@ import {
   ControlPanel,
   ProviderSelector,
   StatusIndicator,
+  AudioDeviceSelector,
 } from './components';
 import type { TranscriptData, ResponseData, SystemStatus } from './types';
 import { useTranscript } from './hooks';
@@ -103,6 +104,9 @@ function App() {
     stopRecording,
     devices,
     loadDevices,
+    selectDevice,
+    selectedMicId,
+    selectedSpeakerId,
     error: recordingError
   } = useAudioRecording({
     enableVisualization: false,
@@ -288,6 +292,16 @@ function App() {
                        onUpdateIntervalChange={setUpdateInterval}
                        onClearContext={clearAllData}
                      />
+                     <Box sx={{ mt: 2 }}>
+                       <AudioDeviceSelector
+                         devices={devices}
+                         isLoadingDevices={isLoadingDevices}
+                         selectedMicId={selectedMicId}
+                         selectedSpeakerId={selectedSpeakerId}
+                         loadDevices={loadDevices}
+                         selectDevice={selectDevice}
+                       />
+                     </Box>
                   </Paper>
                 </Grid>
 
