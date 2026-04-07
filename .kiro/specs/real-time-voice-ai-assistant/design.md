@@ -135,12 +135,12 @@ from typing import Optional, Callable
 
 # 第三方库导入
 import numpy as np
-from src import custom_speech_recognition as sr
+from backend import custom_speech_recognition as sr
 
 # 本地模块导入
-from src.audio.recorder import AudioRecorder
-from src.ai.adapter import AIAdapter
-from src.config.settings import RECORD_TIMEOUT
+from backend.audio.recorder import AudioRecorder
+from backend.ai.adapter import AIAdapter
+from backend.config.settings import RECORD_TIMEOUT
 ```
 
 ## 编码规范
