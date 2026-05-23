@@ -92,8 +92,16 @@ config.local.json
 # Jupyter Notebook 检查点
 .ipynb_checkpoints/
 transcript_log/
+
 logs/
 /.vscode/
 .venv/
 __pycache__/
 *.pyc
+.gitnexus
+/CLAUDE.md
+/AGENTS.md
+
+# Project wiki (docs/raw + docs/wiki)
+docs/raw/assets/
+!/docs/logs/

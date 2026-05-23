@@ -128,7 +128,7 @@ export function AudioDeviceSelector({
       )}
 
       {/* Microphone selector */}
-      <FormControl fullWidth size="small" disabled={isLoadingDevices}>
+      <FormControl fullWidth size="small" disabled={isLoadingDevices || microphones.length === 0}>
         <InputLabel id="mic-select-label" shrink>麦克风</InputLabel>
         <Select
           labelId="mic-select-label"
@@ -151,7 +151,7 @@ export function AudioDeviceSelector({
       </FormControl>
 
       {/* Speaker selector */}
-      <FormControl fullWidth size="small" disabled={isLoadingDevices}>
+      <FormControl fullWidth size="small" disabled={isLoadingDevices || speakers.length === 0}>
         <InputLabel id="speaker-select-label" shrink>Speaker</InputLabel>
         <Select
           labelId="speaker-select-label"

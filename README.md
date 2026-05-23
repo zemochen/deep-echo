@@ -11,7 +11,7 @@ DeepEcho uses a modern frontend-backend separation architecture:
 - **Middleware** (Tauri/Rust): Cross-platform framework and IPC layer
 - **Backend** (Python): AI processing and audio handling
 
-See [Architecture Documentation](docs/architecture.md) for details.
+See [Architecture Documentation](~/Documents/knowledge/projects/deepecho/architecture/overview.md) for details.
 
 ## ✨ Key Features
 
@@ -105,10 +105,10 @@ See [Architecture Documentation](docs/architecture.md) for details.
 
 ## 📚 Documentation
 
-- [Architecture](docs/architecture.md) - System architecture and design
-- [API Reference](docs/api.md) - Complete API documentation
-- [Development Guide](docs/development.md) - Development setup and workflow
-- [Deployment Guide](docs/deployment.md) - Building and deploying
+- [Architecture](~/Documents/knowledge/projects/deepecho/architecture/overview.md) - System architecture and design
+- [API Reference](~/Documents/knowledge/projects/deepecho/architecture/api.md) - Complete API documentation
+- [Development Guide](~/Documents/knowledge/projects/deepecho/context/development.md) - Development setup and workflow
+- [Deployment Guide](~/Documents/knowledge/projects/deepecho/process/deployment.md) - Building and deploying
 
 ## 📁 Project Structure
 

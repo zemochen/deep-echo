@@ -96,8 +96,17 @@ export async function getAudioDevices(): Promise<AudioDevice[]> {
   // Non-Tauri fallback: use browser mediaDevices API
   if (!(window as any).__TAURI__) {
     try {
-      // Request permission first so labels are populated
-      await navigator.mediaDevices.getUserMedia({ audio: true }).then(s => s.getTracks().forEach(t => t.stop()));
+      // Request permission with a 3s timeout so we never hang indefinitely
+      const permissionTimeout = new Promise<void>((_, reject) =>
+        setTimeout(() => reject(new Error('getUserMedia timeout')), 3000)
+      );
+      const permissionRequest = navigator.mediaDevices
+        .getUserMedia({ audio: true })
+        .then(s => s.getTracks().forEach(t => t.stop()));
+      await Promise.race([permissionRequest, permissionTimeout]).catch(() => {
+        // Permission denied or timed out — proceed without labels
+      });
+
       const devices = await navigator.mediaDevices.enumerateDevices();
       return devices
         .filter(d => d.kind === 'audioinput' || d.kind === 'audiooutput')
