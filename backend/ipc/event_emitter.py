@@ -239,26 +239,14 @@ class EventEmitter:
     
     def _process_events(self) -> None:
         """
-        Process events from the queue (runs in background thread).
-        
-        This method continuously processes events from the queue and
-        forwards them to connected clients.
+        Event processing thread - keeps the thread alive for lifecycle
+        management. Events are consumed by client handler threads via
+        _send_pending_events to avoid race conditions with command responses.
         """
         logger.info("Event processing thread started")
         
         while self._is_running:
-            try:
-                # Get event from queue with timeout
-                event = self._event_queue.get(timeout=0.5)
-                
-                # Forward event to clients
-                self._forward_event(event)
-                
-            except Empty:
-                # No events in queue, continue
-                continue
-            except Exception as e:
-                logger.error(f"Error processing event: {e}", exc_info=True)
+            threading.Event().wait(0.5)
         
         logger.info("Event processing thread stopped")
     

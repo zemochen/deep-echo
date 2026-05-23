@@ -2,24 +2,83 @@ use crate::models::response::{SystemInfo, AudioDevice};
 use std::env;
 use std::io::{Read, Write};
 use std::net::TcpStream;
+use std::time::Duration;
 use serde_json::json;
 
-/// Send IPC command to Python backend (mirrors audio.rs implementation)
+/// Send IPC command to Python backend
+///
+/// Retries on empty response (handles startup race where the Python backend
+/// hasn't finished initializing or the accept thread hasn't started yet).
 async fn send_ipc_command(command: &str, data: serde_json::Value) -> Result<String, String> {
+    let max_attempts = 3;
+
+    for attempt in 1..=max_attempts {
+        match try_send_ipc_command(command, &data).await {
+            Ok(response) => return Ok(response),
+            Err(e) => {
+                let is_empty = e == "Empty response from Python backend";
+                if is_empty && attempt < max_attempts {
+                    eprintln!(
+                        "[IPC] Empty response on attempt {}/{}, retrying in 500ms...",
+                        attempt, max_attempts
+                    );
+                    tokio::time::sleep(Duration::from_millis(500)).await;
+                } else {
+                    return Err(e);
+                }
+            }
+        }
+    }
+
+    Err(format!(
+        "Empty response from Python backend (after {} attempts)",
+        max_attempts
+    ))
+}
+
+async fn try_send_ipc_command(command: &str, data: &serde_json::Value) -> Result<String, String> {
+    use std::io::{BufRead, BufReader, Write};
+    
     let mut stream = TcpStream::connect("127.0.0.1:9876")
         .map_err(|e| format!("Failed to connect to Python backend: {}", e))?;
+    
+    // Set timeouts
+    stream
+        .set_read_timeout(Some(std::time::Duration::from_secs(10)))
+        .map_err(|e| format!("Failed to set read timeout: {}", e))?;
+    stream
+        .set_write_timeout(Some(std::time::Duration::from_secs(10)))
+        .map_err(|e| format!("Failed to set write timeout: {}", e))?;
 
-    let command_json = json!({ "command": command, "data": data });
+    // Python backend expects "params" not "data"
+    let command_json = json!({ "command": command, "params": data });
     let command_str = format!("{}\n", command_json.to_string());
 
     stream.write_all(command_str.as_bytes())
         .map_err(|e| format!("Failed to send command: {}", e))?;
+    stream.flush()
+        .map_err(|e| format!("Failed to flush: {}", e))?;
 
-    let mut response = String::new();
-    stream.read_to_string(&mut response)
+    // Read response - skip welcome message, read actual response
+    let mut reader = BufReader::new(&stream);
+    let mut line = String::new();
+    
+    // First line is welcome message, skip it
+    reader.read_line(&mut line)
+        .map_err(|e| format!("Failed to read welcome: {}", e))?;
+    line.clear();
+    
+    // Second line is the actual response
+    reader.read_line(&mut line)
         .map_err(|e| format!("Failed to read response: {}", e))?;
 
-    Ok(response.trim().to_string())
+    let response = line.trim().to_string();
+    
+    if response.is_empty() {
+        return Err("Empty response from Python backend".to_string());
+    }
+
+    Ok(response)
 }
 
 /// Get system information
@@ -110,9 +169,20 @@ pub async fn set_audio_device(
         return Err("Device ID cannot be empty".to_string());
     }
 
-    // TODO: Send IPC command to Python backend to set audio device
-    // For now, we'll just log the action
-    println!("Setting {} device to: {}", device_type, device_id);
-
-    Ok(format!("Set {} device to: {}", device_type, device_id))
+    // Send IPC command to Python backend
+    let params = json!({
+        "device_type": device_type,
+        "device_id": device_id
+    });
+    
+    match send_ipc_command("set_audio_device", params).await {
+        Ok(response) => {
+            println!("Set audio device response: {}", response);
+            Ok(format!("Set {} device to: {}", device_type, device_id))
+        }
+        Err(e) => {
+            eprintln!("Failed to set audio device: {}", e);
+            Err(format!("Failed to set audio device: {}", e))
+        }
+    }
 }

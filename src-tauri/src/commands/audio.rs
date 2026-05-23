@@ -1,5 +1,6 @@
 use tauri::State;
 use std::sync::Mutex;
+use std::time::Duration;
 use serde_json::json;
 
 /// Shared state for audio recording
@@ -17,33 +18,76 @@ impl Default for AudioState {
     }
 }
 
-/// Send IPC command to Python backend
+/// Send IPC command to Python backend with retry on empty response.
+/// Handles the startup race where the backend accept thread may not be ready yet.
 async fn send_ipc_command(command: &str, data: serde_json::Value) -> Result<String, String> {
-    use std::io::{Read, Write};
+    let max_attempts = 3;
+
+    for attempt in 1..=max_attempts {
+        match try_send_ipc_command(command, &data).await {
+            Ok(response) => return Ok(response),
+            Err(e) => {
+                let is_empty = e == "Empty response from Python backend";
+                if is_empty && attempt < max_attempts {
+                    eprintln!(
+                        "[IPC] Empty response on attempt {}/{}, retrying in 500ms...",
+                        attempt, max_attempts
+                    );
+                    tokio::time::sleep(Duration::from_millis(500)).await;
+                } else {
+                    return Err(e);
+                }
+            }
+        }
+    }
+
+    Err(format!(
+        "Empty response from Python backend (after {} attempts)",
+        max_attempts
+    ))
+}
+
+async fn try_send_ipc_command(command: &str, data: &serde_json::Value) -> Result<String, String> {
+    use std::io::{Read, Write, BufReader, BufRead};
     use std::net::TcpStream;
     
-    // Connect to Python backend
     let mut stream = TcpStream::connect("127.0.0.1:9876")
         .map_err(|e| format!("Failed to connect to Python backend: {}", e))?;
     
-    // Prepare command
-    let command_json = json!({
-        "command": command,
-        "data": data
-    });
+    stream
+        .set_read_timeout(Some(Duration::from_secs(10)))
+        .map_err(|e| format!("Failed to set read timeout: {}", e))?;
+    stream
+        .set_write_timeout(Some(Duration::from_secs(10)))
+        .map_err(|e| format!("Failed to set write timeout: {}", e))?;
     
+    let command_json = json!({ "command": command, "params": data });
     let command_str = format!("{}\n", command_json.to_string());
     
-    // Send command
     stream.write_all(command_str.as_bytes())
         .map_err(|e| format!("Failed to send command: {}", e))?;
+    stream.flush()
+        .map_err(|e| format!("Failed to flush: {}", e))?;
     
-    // Read response
-    let mut response = String::new();
-    stream.read_to_string(&mut response)
+    let mut reader = BufReader::new(&stream);
+    let mut line = String::new();
+    
+    // First line is welcome message, skip it
+    reader.read_line(&mut line)
+        .map_err(|e| format!("Failed to read welcome: {}", e))?;
+    line.clear();
+    
+    // Second line is the actual response
+    reader.read_line(&mut line)
         .map_err(|e| format!("Failed to read response: {}", e))?;
     
-    Ok(response.trim().to_string())
+    let response = line.trim().to_string();
+    
+    if response.is_empty() {
+        return Err("Empty response from Python backend".to_string());
+    }
+    
+    Ok(response)
 }
 
 /// Start audio recording

@@ -233,6 +233,10 @@ class IPCServer:
                             
                             # Send response
                             self._send_message(client_socket, response)
+                            
+                            # Drain pending events immediately after response
+                            # to ensure events arrive AFTER the command response
+                            self._send_pending_events(client_socket)
                     
                 except socket.timeout:
                     # Send pending events during timeout

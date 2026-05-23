@@ -25,18 +25,22 @@ def recognize_whisper_api(
     """
     if not isinstance(audio_data, AudioData):
         raise ValueError("``audio_data`` must be an ``AudioData`` instance")
-    if api_key is None and os.environ.get("OPENAI_API_KEY") is None:
+    resolved_key = api_key or os.environ.get("OPENAI_API_KEY")
+    if resolved_key is None:
         raise SetupError("Set environment variable ``OPENAI_API_KEY``")
 
     try:
-        import openai
+        from openai import OpenAI
     except ImportError:
         raise SetupError(
             "missing openai module: ensure that openai is set up correctly."
         )
 
     wav_data = BytesIO(audio_data.get_wav_data())
-    wav_data.name = "SpeechRecognition_audio.wav"
 
-    transcript = openai.Audio.transcribe(model, wav_data, api_key=api_key)
-    return transcript["text"]
+    client = OpenAI(api_key=resolved_key)
+    transcript = client.audio.transcriptions.create(
+        model=model,
+        file=("SpeechRecognition_audio.wav", wav_data.read(), "audio/wav"),
+    )
+    return transcript.text

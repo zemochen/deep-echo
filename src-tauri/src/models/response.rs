@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 /// Audio device information
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AudioDevice {
     pub id: String,
     pub name: String,
