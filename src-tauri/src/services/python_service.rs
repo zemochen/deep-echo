@@ -90,37 +90,44 @@ impl PythonService {
         *state = ServiceState::Starting;
         drop(state);
 
-        // Build command
-        let mut cmd = Command::new(&self.config.python_path);
-        cmd.arg(&self.config.service_script)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::inherit());
+        let existing = std::net::TcpStream::connect_timeout(
+            &"127.0.0.1:9876".parse().unwrap(),
+            Duration::from_secs(1),
+        );
 
-        // Set working directory if specified
-        if let Some(ref working_dir) = self.config.working_dir {
-            cmd.current_dir(working_dir);
+        match existing {
+            Ok(stream) => {
+                drop(stream);
+                println!("✓ Found existing Python backend on port 9876, skipping spawn");
+            }
+            Err(_) => {
+                let mut cmd = Command::new(&self.config.python_path);
+                cmd.arg(&self.config.service_script)
+                    .stdout(Stdio::piped())
+                    .stderr(Stdio::inherit());
+
+                if let Some(ref working_dir) = self.config.working_dir {
+                    cmd.current_dir(working_dir);
+                }
+
+                for (key, value) in &self.config.env_vars {
+                    cmd.env(key, value);
+                }
+
+                let child = cmd.spawn()
+                    .context("Failed to spawn Python service process")?;
+
+                let pid = child.id();
+                println!("✓ Python service started with PID: {}", pid);
+                println!("  Command: {} {}", self.config.python_path, self.config.service_script);
+                println!("  Working dir: {:?}", self.config.working_dir);
+
+                let mut process = self.process.lock().unwrap();
+                *process = Some(child);
+                drop(process);
+            }
         }
 
-        // Set environment variables
-        for (key, value) in &self.config.env_vars {
-            cmd.env(key, value);
-        }
-
-        // Spawn process
-        let child = cmd.spawn()
-            .context("Failed to spawn Python service process")?;
-
-        let pid = child.id();
-        println!("✓ Python service started with PID: {}", pid);
-        println!("  Command: {} {}", self.config.python_path, self.config.service_script);
-        println!("  Working dir: {:?}", self.config.working_dir);
-
-        // Store the process
-        let mut process = self.process.lock().unwrap();
-        *process = Some(child);
-        drop(process);
-
-        // Update state
         let mut state = self.state.lock().unwrap();
         *state = ServiceState::Running;
         drop(state);

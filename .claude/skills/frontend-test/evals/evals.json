@@ -1,0 +1,43 @@
+{
+  "skill_name": "frontend-test",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Read the ControlPanel component at frontend/src/components/ControlPanel.tsx and generate a complete Playwright test file. The tests should cover: (1) Freeze/Unfreeze button toggle, (2) Update Interval Slider rendering with default value 5s, (3) Clear Context button existence, (4) Slider gets disabled when frozen. Save the test file as tests/control-panel.spec.ts.",
+      "expected_output": "A Playwright test file with 4+ test cases covering ControlPanel interactions",
+      "files": ["frontend/src/components/ControlPanel.tsx"],
+      "expectations": [
+        "The test file imports { test, expect } from '@playwright/test'",
+        "Tests cover freeze/unfreeze button toggle",
+        "Tests cover slider rendering with default 5s",
+        "Tests cover clear context button existence",
+        "Tests cover slider disabled state when frozen"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Read App.tsx at frontend/src/App.tsx and frontend/index.html, then generate a full page E2E test file that: (1) verifies all panels render (Transcript, AI Response, Status, Controls, AI Provider, Debug Info), (2) tests page title, (3) verifies Tauri warning banner, (4) tests the full flow: Freeze Display → verify chips → Unfreeze → Clear Context → verify counts reset to 0. Save as tests/app-e2e.spec.ts.",
+      "expected_output": "A Playwright E2E test file with page-level flow tests",
+      "files": ["frontend/src/App.tsx", "frontend/index.html"],
+      "expectations": [
+        "The test file imports { test, expect } from '@playwright/test'",
+        "Tests verify all 6 panels are visible",
+        "Tests page title is 'frontend-temp'",
+        "Tests Tauri warning banner is visible",
+        "Tests full freeze/unfreeze/clear flow"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Read the ProviderSelector component at frontend/src/components/ProviderSelector.tsx and generate Playwright tests covering: (1) default selections (DeepSeek / deepseek-chat), (2) switching provider auto-updates model, (3) model select is disabled when no models available. Save as tests/provider-selector.spec.ts.",
+      "expected_output": "A Playwright test file with 3+ test cases for ProviderSelector",
+      "files": ["frontend/src/components/ProviderSelector.tsx"],
+      "expectations": [
+        "The test file imports { test, expect } from '@playwright/test'",
+        "Tests verify default provider is DeepSeek",
+        "Tests verify switching provider changes model selection",
+        "Tests model dropdown is disabled state appropriately"
+      ]
+    }
+  ]
+}

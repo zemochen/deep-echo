@@ -44,8 +44,16 @@ class LoggerAdapter:
         
         # Add console handler if enabled
         if self.config.console_enabled:
+            def safe_print(msg: str) -> None:
+                """Print handler that gracefully handles BrokenPipeError."""
+                try:
+                    print(msg, end='')
+                except (BrokenPipeError, IOError):
+                    # Pipe closed (e.g., parent process terminated), silently ignore
+                    pass
+            
             self._console_handler_id = logger.add(
-                lambda msg: print(msg, end=''),
+                safe_print,
                 format=self.config.console_format,
                 level=self.config.log_level,
                 colorize=True
@@ -164,9 +172,17 @@ class LoggerAdapter:
         
         # Update handlers
         if self._console_handler_id is not None:
+            def safe_print(msg: str) -> None:
+                """Print handler that gracefully handles BrokenPipeError."""
+                try:
+                    print(msg, end='')
+                except (BrokenPipeError, IOError):
+                    # Pipe closed (e.g., parent process terminated), silently ignore
+                    pass
+            
             logger.remove(self._console_handler_id)
             self._console_handler_id = logger.add(
-                lambda msg: print(msg, end=''),
+                safe_print,
                 format=self.config.console_format,
                 level=level,
                 colorize=True
@@ -193,8 +209,16 @@ class LoggerAdapter:
         self.config.console_enabled = enabled
         
         if enabled and self._console_handler_id is None:
+            def safe_print(msg: str) -> None:
+                """Print handler that gracefully handles BrokenPipeError."""
+                try:
+                    print(msg, end='')
+                except (BrokenPipeError, IOError):
+                    # Pipe closed (e.g., parent process terminated), silently ignore
+                    pass
+            
             self._console_handler_id = logger.add(
-                lambda msg: print(msg, end=''),
+                safe_print,
                 format=self.config.console_format,
                 level=self.config.log_level,
                 colorize=True

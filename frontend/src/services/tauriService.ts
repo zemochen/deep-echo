@@ -88,6 +88,7 @@ export async function stopRecording(): Promise<string> {
 
 /**
  * Get list of available audio devices.
+ * Uses Python backend via IPC for accurate system device enumeration.
  * In non-Tauri environments, falls back to browser's mediaDevices API.
  * @returns Array of audio devices
  * @throws TauriCommandError if device enumeration fails
@@ -120,11 +121,26 @@ export async function getAudioDevices(): Promise<AudioDevice[]> {
     }
   }
 
-  try {
-    return await invoke<AudioDevice[]>(TAURI_COMMANDS.GET_AUDIO_DEVICES);
-  } catch (error) {
-    return handleCommandError(TAURI_COMMANDS.GET_AUDIO_DEVICES, error);
+  // Use Python backend via Tauri IPC for accurate device enumeration
+  const maxAttempts = 3;
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await invoke<AudioDevice[]>(TAURI_COMMANDS.GET_AUDIO_DEVICES);
+    } catch (error) {
+      lastError = error;
+      if (attempt < maxAttempts) {
+        console.warn(
+          `[TauriService] get_audio_devices failed on attempt ${attempt}/${maxAttempts}, retrying...`
+        );
+        // Exponential backoff: 1s, 2s, 4s
+        await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt - 1)));
+      }
+    }
   }
+
+  return handleCommandError(TAURI_COMMANDS.GET_AUDIO_DEVICES, lastError);
 }
 
 /**

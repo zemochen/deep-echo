@@ -27,11 +27,11 @@ async fn send_ipc_command(command: &str, data: serde_json::Value) -> Result<Stri
         match try_send_ipc_command(command, &data).await {
             Ok(response) => return Ok(response),
             Err(e) => {
-                let is_empty = e == "Empty response from Python backend";
-                if is_empty && attempt < max_attempts {
+                let should_retry = e == "Empty response from Python backend"
+                    || e.starts_with("Failed to connect to Python backend");
+                if should_retry && attempt < max_attempts {
                     eprintln!(
-                        "[IPC] Empty response on attempt {}/{}, retrying in 500ms...",
-                        attempt, max_attempts
+                        "[IPC] {e} on attempt {attempt}/{max_attempts}, retrying in 500ms..."
                     );
                     tokio::time::sleep(Duration::from_millis(500)).await;
                 } else {

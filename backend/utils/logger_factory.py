@@ -101,8 +101,16 @@ class LoggerFactory:
         # Add console handler if enabled
         if config.console_enabled:
             try:
+                def safe_print(msg: str) -> None:
+                    """Print handler that gracefully handles BrokenPipeError."""
+                    try:
+                        print(msg, end='')
+                    except (BrokenPipeError, IOError):
+                        # Pipe closed (e.g., parent process terminated), silently ignore
+                        pass
+                
                 logger.add(
-                    lambda msg: print(msg, end=''),
+                    safe_print,
                     format=config.console_format,
                     level=config.log_level,
                     colorize=True
